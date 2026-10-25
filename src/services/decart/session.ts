@@ -103,10 +103,118 @@ export function buildVideoConstraints(
   };
 
   if (deviceId) {
-    return { ...constraints, deviceId: { exact: deviceId } };
+    return { ...constraints, deviceId: { ideal: deviceId } };
   }
 
   return { ...constraints, facingMode: 'user' };
+}
+
+/**
+ * Verifies that a camera MediaStream is actively producing video frames before dialing Decart.
+ * In browser environments, checks readyState, muted status, and verifies that at least one frame
+ * renders via requestVideoFrameCallback/playing within the timeout window.
+ */
+export async function verifyStreamFrames(
+  stream: MediaStream,
+  timeoutMs = 2500,
+): Promise<{ ok: boolean; reason?: string; hint?: string }> {
+  const track = stream.getVideoTracks()[0];
+  if (!track) {
+    return {
+      ok: false,
+      reason: 'No video track found on the selected camera device.',
+      hint: 'Ensure your camera is plugged in and recognized by your system.',
+    };
+  }
+
+  if (track.readyState && track.readyState !== 'live') {
+    return {
+      ok: false,
+      reason: `Camera track is not live (state: ${track.readyState}).`,
+      hint: 'The camera may have been disconnected or stopped by the operating system.',
+    };
+  }
+
+  if (track.enabled === false) {
+    track.enabled = true;
+  }
+
+  if (
+    typeof document === 'undefined' ||
+    typeof HTMLVideoElement === 'undefined' ||
+    (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent)) ||
+    !('requestVideoFrameCallback' in HTMLVideoElement.prototype)
+  ) {
+    return { ok: !track.muted };
+  }
+
+  return new Promise((resolve) => {
+    let finished = false;
+    const video = document.createElement('video');
+    video.muted = true;
+    (video as unknown as { defaultMuted: boolean }).defaultMuted = true;
+    video.playsInline = true;
+    video.autoplay = true;
+
+    const cleanup = () => {
+      try {
+        video.pause();
+        video.srcObject = null;
+        video.remove();
+      } catch {
+        // cleanup best-effort
+      }
+    };
+
+    const timer = window.setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      cleanup();
+
+      if (track.muted) {
+        resolve({
+          ok: false,
+          reason: 'Your camera is active but muted by Windows or physical hardware.',
+          hint: 'Open your webcam privacy shutter/slider, or check Windows Settings → Privacy & security → Camera.',
+        });
+      } else {
+        resolve({
+          ok: false,
+          reason: 'Camera is not delivering video frames to the browser.',
+          hint: 'Another application (such as OBS, Zoom, or Teams) may have an exclusive lock on this webcam, or the camera is in standby.',
+        });
+      }
+    }, timeoutMs);
+
+    const onFrame = () => {
+      if (finished) return;
+      finished = true;
+      window.clearTimeout(timer);
+      cleanup();
+      resolve({ ok: true });
+    };
+
+    try {
+      video.srcObject = stream;
+      const playPromise = video.play();
+      if (playPromise) {
+        playPromise.catch(() => {});
+      }
+
+      if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+        (video as HTMLVideoElement).requestVideoFrameCallback(() => onFrame());
+      } else {
+        video.addEventListener('playing', onFrame, { once: true });
+        video.addEventListener('timeupdate', () => {
+          if (video.currentTime > 0) onFrame();
+        });
+      }
+    } catch {
+      window.clearTimeout(timer);
+      cleanup();
+      resolve({ ok: !track.muted });
+    }
+  });
 }
 
 /**
@@ -379,6 +487,16 @@ export function mapSdkError(error: unknown): LucySessionError {
         fatal: true,
       };
     case 'WEBRTC_SERVER_ERROR':
+      if (technical?.toLowerCase().includes('video_input_timeout')) {
+        return {
+          code: 'camera-unavailable',
+          title: 'Decart camera input timed out',
+          message:
+            'Decart connected, but did not receive video frames from your camera in time (video_input_timeout).',
+          hint: 'Check that your webcam privacy shutter is open, close any apps locking the camera (such as OBS, Zoom, or Teams), or select a different camera in the dropdown.',
+          fatal: true,
+        };
+      }
       return {
         code: 'server-error',
         title: 'Lucy session ended by provider',
@@ -633,6 +751,24 @@ export class LucySessionService {
         );
       }
     }
+
+    const frameCheck = await verifyStreamFrames(stream, 2000);
+    if (!frameCheck.ok) {
+      if (generation !== this.generation || this.stopRequested) {
+        stopStream(stream);
+        return;
+      }
+      stopStream(stream);
+      this.fail({
+        code: 'camera-unavailable',
+        title: 'Camera not producing video frames',
+        message: frameCheck.reason || 'Dallr could not receive video frames from your webcam.',
+        hint: frameCheck.hint || 'Check your webcam privacy slider or select another camera device.',
+        fatal: true,
+      });
+      return;
+    }
+
     const settings = track?.getSettings();
     this.cameraLabel = track?.label?.trim() || 'Camera';
     this.mirror = resolveMirrorOption(input.mirror, settings?.facingMode);
@@ -708,6 +844,22 @@ export class LucySessionService {
 
     this.realtime = realtime;
     this.attach('connectionChange', (state) => this.handleConnectionChange(state, generation));
+    this.attach('connectionQuality', (quality) => {
+      console.log('[Dallr WebRTC Connection Quality]:', quality);
+    });
+    this.attach('diagnostic', (diag) => {
+      console.log('[Dallr WebRTC Diagnostic]:', diag);
+    });
+    this.attach('stats', (stats) => {
+      if (stats?.video?.framesReceived) {
+        console.log('[Dallr WebRTC Video Inbound Stats]:', {
+          fps: stats.video.framesPerSecond,
+          framesReceived: stats.video.framesReceived,
+          framesDropped: stats.video.framesDropped,
+          bitrate: stats.video.bitrate,
+        });
+      }
+    });
     this.attach('error', (error) => this.handleSdkError(error, generation));
     this.attach('generationTick', ({ seconds }) => {
       if (generation !== this.generation || this.stopRequested) return;

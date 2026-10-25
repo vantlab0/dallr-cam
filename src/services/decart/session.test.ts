@@ -66,7 +66,12 @@ let lastClientOptions: { apiKeyProvider?: () => Promise<string> } | null = null;
 function createStream(label = 'Test Camera', facingMode?: string) {
   const track = {
     label,
+    readyState: 'live',
+    enabled: true,
+    muted: false,
     stop: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
     getSettings: () => ({ deviceId: 'cam-1', facingMode }),
   };
   const stream = {
@@ -159,7 +164,7 @@ describe('LucySessionService', () => {
     expect(getUserMedia).toHaveBeenCalledWith({
       audio: true,
       video: expect.objectContaining({
-        deviceId: { exact: 'cam-1' },
+        deviceId: { ideal: 'cam-1' },
         width: { ideal: 1280 },
         height: { ideal: 720 },
         frameRate: { ideal: 30, max: 30 },
@@ -362,7 +367,7 @@ describe('Lucy session helpers', () => {
       width: { ideal: 1280 },
       height: { ideal: 720 },
       frameRate: { ideal: 30, max: 30 },
-      deviceId: { exact: 'cam-9' },
+      deviceId: { ideal: 'cam-9' },
     });
   });
 
