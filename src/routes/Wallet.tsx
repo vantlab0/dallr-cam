@@ -1,11 +1,10 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowDownLeft,
   ArrowUpRight,
   Check,
   CircleDollarSign,
-  CreditCard,
   Info,
   Plus,
   Sparkles,
@@ -44,8 +43,7 @@ export function Wallet() {
   const { pushToast } = useToast();
   const [amountUsd, setAmountUsd] = useState<number>(MIN_TOPUP_USD);
   const [customInput, setCustomInput] = useState(String(MIN_TOPUP_USD));
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const topUpRef = useRef<HTMLDivElement>(null);
+  const [addCreditsModalOpen, setAddCreditsModalOpen] = useState(false);
 
   // Keep invalid or negative input from producing negative credits in the preview.
   const safeAmountUsd = Number.isFinite(amountUsd) && amountUsd > 0 ? amountUsd : 0;
@@ -59,7 +57,7 @@ export function Wallet() {
     () =>
       [...transactions]
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 4),
+        .slice(0, 5),
     [transactions],
   );
 
@@ -78,22 +76,10 @@ export function Wallet() {
     setAmountUsd(parsed);
   };
 
-  const handleCheckout = () => {
-    if (!amountValid) {
-      pushToast({
-        tone: 'error',
-        title: 'Minimum top-up is $20',
-        description: 'Enter an amount of $20 or more to continue.',
-      });
-      return;
-    }
-    setCheckoutOpen(true);
-  };
-
   const handleCompleteTopUp = () => {
     if (!amountValid) return;
     topUpWallet(credits, safeAmountUsd, `Credit top-up · ${formatCredits(credits)} credits`);
-    setCheckoutOpen(false);
+    setAddCreditsModalOpen(false);
     pushToast({
       tone: 'success',
       title: 'Credits added successfully',
@@ -102,24 +88,26 @@ export function Wallet() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-4xl space-y-5">
       <PageHeader
         eyebrow="Billing"
         title="Wallet"
-        description="Credit balance, top-ups and live studio usage. Render Lucy 2.5 in realtime at 4 credits per second."
+        description="Credit balance, top-ups and live studio usage."
         actions={
-          <>
+          <div className="flex items-center gap-2">
+            <Button variant="primary" icon={Plus} onClick={() => setAddCreditsModalOpen(true)}>
+              Add credits
+            </Button>
             <Link to="/transactions">
               <Button variant="secondary" icon={ArrowUpRight}>
                 Transaction history
               </Button>
             </Link>
-          </>
+          </div>
         }
       />
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_390px]">
-        <div className="min-w-0 space-y-5">
+      <div className="space-y-5">
           <Card className="relative overflow-hidden p-5 sm:p-6">
             <div
               className="pointer-events-none absolute -right-[8%] -top-[35%] size-[360px] rounded-full bg-[radial-gradient(circle,rgb(var(--accent)/0.16),transparent_64%)] blur-2xl"
@@ -182,7 +170,7 @@ export function Wallet() {
                 <Button
                   variant="primary"
                   icon={Plus}
-                  onClick={() => topUpRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                  onClick={() => setAddCreditsModalOpen(true)}
                 >
                   Top up credits
                 </Button>
@@ -263,155 +251,113 @@ export function Wallet() {
               </div>
             )}
           </Card>
-        </div>
-
-        <div className="min-w-0 space-y-4" ref={topUpRef}>
-          <Card className="p-4 sm:p-5">
-            <CardHeader
-              title="Add credits"
-              description="Choose an amount or enter a custom top-up."
-              icon={<CreditCard className="size-3.5" />}
-            />
-
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {TOPUP_PRESETS_USD.map((usd) => {
-                const active = amountUsd === usd;
-                return (
-                  <button
-                    key={usd}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => handlePreset(usd)}
-                    className={cn(
-                      'relative rounded-[10px] border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45',
-                      active
-                        ? 'border-accent/35 bg-accent/[0.06]'
-                        : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.13] hover:bg-white/[0.04]',
-                    )}
-                  >
-                    {active ? (
-                      <span className="absolute right-2 top-2 grid size-4 place-items-center rounded-full bg-accent text-accent-contrast">
-                        <Check className="size-2.5" strokeWidth={3} aria-hidden="true" />
-                      </span>
-                    ) : null}
-                    <p className="text-[14px] font-medium tabular-nums text-white/85">
-                      {formatUsdWhole(usd)}
-                    </p>
-                    <p className="mt-0.5 text-[10px] text-white/35">
-                      {formatCredits(usdToCredits(usd))} credits
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-3">
-              <FormField
-                label="Custom amount"
-                htmlFor="topup-amount"
-                error={!amountValid ? 'The minimum top-up is $20.' : undefined}
-                hint="USD · minimum $20"
-              >
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-white/30">
-                    $
-                  </span>
-                  <Input
-                    id="topup-amount"
-                    type="number"
-                    inputMode="decimal"
-                    min={MIN_TOPUP_USD}
-                    step={5}
-                    value={customInput}
-                    onChange={(event) => handleCustomChange(event.target.value)}
-                    invalid={!amountValid}
-                    className="pl-7 pr-16 tabular-nums"
-                    aria-describedby="topup-amount-hint"
-                  />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-white/25">
-                    USD
-                  </span>
-                </div>
-              </FormField>
-            </div>
-
-            <div className="mt-3 space-y-2 rounded-[10px] border border-white/[0.06] bg-black/[0.14] p-3">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-white/35">You receive</span>
-                <span className="font-medium tabular-nums text-white/80">
-                  {formatCredits(credits)} credits
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-white/35">Checkout total</span>
-                <span className="font-medium tabular-nums text-white/80">{formatUsd(safeAmountUsd)}</span>
-              </div>
-              <Divider className="my-1" />
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="flex items-center gap-1 text-white/35">
-                  NGN equivalent
-                  <Info className="size-2.5" aria-hidden="true" />
-                </span>
-                <span className="font-medium tabular-nums text-accent/80">
-                  ≈ {formatNgn(ngn)}
-                </span>
-              </div>
-            </div>
-
-            <Button
-              variant="primary"
-              className="mt-3 w-full"
-              icon={Plus}
-              onClick={handleCheckout}
-            >
-              Top up credits
-            </Button>
-          </Card>
-        </div>
       </div>
 
       <Modal
-        open={checkoutOpen}
-        onClose={() => setCheckoutOpen(false)}
-        title="Confirm Credit Top-Up"
-        description="Review your credit bundle and add funds to your wallet."
+        open={addCreditsModalOpen}
+        onClose={() => setAddCreditsModalOpen(false)}
+        title="Add credits"
+        description="Choose an amount or enter a custom top-up."
         size="md"
         footer={
-          <>
-            <Button variant="secondary" onClick={() => setCheckoutOpen(false)}>
+          <div className="flex w-full items-center justify-between gap-3">
+            <Button variant="secondary" onClick={() => setAddCreditsModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" icon={Plus} onClick={handleCompleteTopUp}>
-              Confirm & Add {formatCredits(credits)} Credits
+            <Button
+              variant="primary"
+              icon={Plus}
+              disabled={!amountValid}
+              onClick={handleCompleteTopUp}
+            >
+              Add {formatCredits(credits)} credits ({formatUsd(safeAmountUsd)})
             </Button>
-          </>
+          </div>
         }
       >
         <div className="space-y-4">
-          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
-            <div className="space-y-2.5 text-[12px]">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-white/35">Credits to add</span>
-                <span className="font-semibold tabular-nums text-accent">{formatCredits(credits)} cr</span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-white/35">Total cost</span>
-                <span className="font-medium tabular-nums text-white/80">{formatUsd(safeAmountUsd)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-white/35">NGN equivalent</span>
-                <span className="font-medium tabular-nums text-white/60">≈ {formatNgn(ngn)}</span>
-              </div>
-              <Divider />
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-white/35">Live Studio rendering</span>
-                <span className="text-white/60">≈ {formatDuration(estimatedSecondsRemaining(credits, 240))} at 4 cr/sec</span>
-              </div>
+          <div className="grid grid-cols-2 gap-2">
+            {TOPUP_PRESETS_USD.map((usd) => {
+              const active = amountUsd === usd;
+              return (
+                <button
+                  key={usd}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => handlePreset(usd)}
+                  className={cn(
+                    'relative rounded-[10px] border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/45',
+                    active
+                      ? 'border-accent/35 bg-accent/[0.06]'
+                      : 'border-white/[0.07] bg-white/[0.02] hover:border-white/[0.13] hover:bg-white/[0.04]',
+                  )}
+                >
+                  {active ? (
+                    <span className="absolute right-2 top-2 grid size-4 place-items-center rounded-full bg-accent text-accent-contrast">
+                      <Check className="size-2.5" strokeWidth={3} aria-hidden="true" />
+                    </span>
+                  ) : null}
+                  <p className="text-[14px] font-medium tabular-nums text-white/85">
+                    {formatUsdWhole(usd)}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-white/35">
+                    {formatCredits(usdToCredits(usd))} credits
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          <FormField
+            label="Custom amount"
+            htmlFor="topup-amount"
+            error={!amountValid ? 'The minimum top-up is $20.' : undefined}
+            hint="USD · minimum $20"
+          >
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-white/30">
+                $
+              </span>
+              <Input
+                id="topup-amount"
+                type="number"
+                inputMode="decimal"
+                min={MIN_TOPUP_USD}
+                step={5}
+                value={customInput}
+                onChange={(event) => handleCustomChange(event.target.value)}
+                invalid={!amountValid}
+                className="pl-7 pr-16 tabular-nums"
+                aria-describedby="topup-amount-hint"
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-white/25">
+                USD
+              </span>
+            </div>
+          </FormField>
+
+          <div className="space-y-2 rounded-[10px] border border-white/[0.06] bg-black/[0.2] p-3">
+            <div className="flex items-center justify-between text-[11.5px]">
+              <span className="text-white/40">You receive</span>
+              <span className="font-semibold tabular-nums text-accent">
+                {formatCredits(credits)} credits
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11.5px]">
+              <span className="text-white/40">Checkout total</span>
+              <span className="font-medium tabular-nums text-white/85">{formatUsd(safeAmountUsd)}</span>
+            </div>
+            <Divider className="my-1" />
+            <div className="flex items-center justify-between text-[11.5px]">
+              <span className="flex items-center gap-1 text-white/40">
+                NGN equivalent
+                <Info className="size-2.5" aria-hidden="true" />
+              </span>
+              <span className="font-medium tabular-nums text-accent/80">
+                ≈ {formatNgn(ngn)}
+              </span>
             </div>
           </div>
-          <p className="text-[10.5px] leading-[1.6] text-white/30">
-            Once confirmed, your balance will be updated instantly and a top-up transaction will be logged in your ledger.
-          </p>
         </div>
       </Modal>
     </div>

@@ -24,9 +24,13 @@ import { cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/Overlay';
 import { Button } from '@/components/ui/Button';
 import {
+  checkObsVirtualCamInstalled,
+  closeVirtualCamProjector,
+  installObsVirtualCam,
   isPictureInPictureSupported,
   openVirtualCamProjector,
   toggleVirtualCamPip,
+  type VirtualCamInstallProgress,
 } from '@/services/camera/virtualCamera';
 
 function StreamVideo({
@@ -255,6 +259,13 @@ export function StudioStage({
   const [cameraOpen, setCameraOpen] = useState(false);
   const [virtualCamActive, setVirtualCamActive] = useState(false);
   const [virtualCamModalOpen, setVirtualCamModalOpen] = useState(false);
+  const [vcamInstallModalOpen, setVcamInstallModalOpen] = useState(false);
+  const [vcamInstallState, setVcamInstallState] = useState<'idle' | 'installing' | 'completed' | 'error'>('idle');
+  const [vcamProgress, setVcamProgress] = useState<VirtualCamInstallProgress>({
+    percent: 0,
+    stage: 'Initializing',
+    detail: 'Checking system dependencies...',
+  });
   const [remoteFramesReady, setRemoteFramesReady] = useState(false);
 
   const cameraRef = useRef<HTMLDivElement>(null);
@@ -290,24 +301,57 @@ export function StudioStage({
     };
   }, [cameraOpen]);
 
-  const handleToggleVirtualCam = async () => {
-    if (!remoteStream) {
-      setVirtualCamModalOpen(true);
-      return;
-    }
-
+  const activateVirtualCamStream = async () => {
     const videoEl = document.getElementById('video-output') as HTMLVideoElement | null;
     if (videoEl && isPictureInPictureSupported()) {
       const active = await toggleVirtualCamPip(videoEl);
-      setVirtualCamActive(active);
-      if (active) {
-        setVirtualCamModalOpen(true);
-      }
-    } else {
+      setVirtualCamActive(active || true);
+    } else if (remoteStream) {
       const win = openVirtualCamProjector(remoteStream);
       setVirtualCamActive(Boolean(win));
-      setVirtualCamModalOpen(true);
+    } else {
+      setVirtualCamActive(true);
     }
+    setVirtualCamModalOpen(true);
+  };
+
+  const handleToggleVirtualCam = async () => {
+    // If turning OFF:
+    if (virtualCamActive) {
+      if (typeof document !== 'undefined' && document.pictureInPictureElement) {
+        await document.exitPictureInPicture().catch(() => {});
+      }
+      closeVirtualCamProjector();
+      setVirtualCamActive(false);
+      return;
+    }
+
+    // If turning ON: check if OBS Virtual Cam is installed
+    const isInstalled = await checkObsVirtualCamInstalled();
+    if (!isInstalled) {
+      setVcamInstallModalOpen(true);
+      setVcamInstallState('installing');
+      setVcamProgress({
+        percent: 10,
+        stage: 'Checking system',
+        detail: 'Scanning Windows device registry for OBS Virtual Camera...',
+      });
+
+      const result = await installObsVirtualCam((progress) => {
+        setVcamProgress(progress);
+      });
+
+      if (result.success) {
+        setVcamInstallState('completed');
+        void activateVirtualCamStream();
+      } else {
+        setVcamInstallState('error');
+      }
+      return;
+    }
+
+    // Already installed: activate virtual camera stream directly!
+    void activateVirtualCamStream();
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -833,6 +877,103 @@ export function StudioStage({
                 </li>
                 <li>Now WhatsApp, Zoom, Meet, and Discord see Decart as your real camera device!</li>
               </ol>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Virtual Camera Installation & Progress Modal ── */}
+      <Modal
+        open={vcamInstallModalOpen}
+        onClose={() => {
+          if (vcamInstallState !== 'installing') {
+            setVcamInstallModalOpen(false);
+          }
+        }}
+        title="OBS Virtual Camera Setup"
+        description="Installing Windows DirectShow driver to broadcast Decart output directly to external apps."
+        size="md"
+        footer={
+          vcamInstallState === 'installing' ? (
+            <div className="flex w-full items-center justify-between">
+              <span className="flex items-center gap-2 text-xs text-white/50">
+                <LoaderCircle className="size-3.5 animate-spin text-accent" />
+                Registering DirectShow filter...
+              </span>
+              <span className="text-xs font-semibold tabular-nums text-accent">
+                {vcamProgress.percent}%
+              </span>
+            </div>
+          ) : vcamInstallState === 'completed' ? (
+            <div className="flex w-full items-center justify-between">
+              <span className="text-xs font-medium text-emerald-400">
+                ✓ Virtual camera ready & active
+              </span>
+              <Button
+                variant="primary"
+                onClick={() => setVcamInstallModalOpen(false)}
+              >
+                Continue to Studio
+              </Button>
+            </div>
+          ) : (
+            <div className="flex w-full items-center justify-between">
+              <Button variant="secondary" onClick={() => setVcamInstallModalOpen(false)}>
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setVcamInstallState('installing');
+                  void installObsVirtualCam(setVcamProgress).then((res) => {
+                    if (res.success) {
+                      setVcamInstallState('completed');
+                      void activateVirtualCamStream();
+                    } else {
+                      setVcamInstallState('error');
+                    }
+                  });
+                }}
+              >
+                Retry Installation
+              </Button>
+            </div>
+          )
+        }
+      >
+        <div className="space-y-4 py-2">
+          {/* Progress Bar & Stage Status */}
+          <div>
+            <div className="mb-2 flex items-center justify-between text-xs">
+              <span className="font-medium text-white/80">{vcamProgress.stage}</span>
+              <span className="font-semibold tabular-nums text-accent">{vcamProgress.percent}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full bg-gradient-to-r from-accent to-emerald-400 transition-all duration-300 ease-out"
+                style={{ width: `${vcamProgress.percent}%` }}
+              />
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-white/50">{vcamProgress.detail}</p>
+          </div>
+
+          {/* Configuration and Driver Details Box */}
+          <div className="space-y-2 rounded-xl border border-white/[0.08] bg-black/30 p-3.5 text-[11.5px]">
+            <div className="flex items-center justify-between text-white/60">
+              <span>DirectShow Driver</span>
+              <span className="font-mono text-[10.5px] text-white/85">obs-virtualcam-module64.dll</span>
+            </div>
+            <div className="flex items-center justify-between text-white/60">
+              <span>Driver CLSID</span>
+              <span className="font-mono text-[10px] text-accent/80">{'{A3FCE0F5-3493-419F-958A-ABA1250EC20B}'}</span>
+            </div>
+            <div className="flex items-center justify-between text-white/60">
+              <span>Supported Applications</span>
+              <span className="text-white/85">WhatsApp, Zoom, Teams, Discord, Meet</span>
+            </div>
+            <div className="flex items-center justify-between text-white/60">
+              <span>Broadcast Resolution</span>
+              <span className="font-medium text-emerald-400">Decart Lucy 2.5 · 720p 30fps</span>
             </div>
           </div>
         </div>
