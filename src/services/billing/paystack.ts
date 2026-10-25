@@ -1,9 +1,6 @@
-export const PAYSTACK_PUBLIC_KEY_STORAGE = 'dallr_paystack_public_key';
+import { getPaystackPublicKey as getVaultPaystackKey } from '@/services/security/vault';
 
-// Default test public key for sandbox/demonstration if no live key is set
-const DEFAULT_PAYSTACK_KEY =
-  (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string | undefined) ||
-  'pk_test_dallr_cam_paystack_default';
+export const PAYSTACK_PUBLIC_KEY_STORAGE = 'dallr_paystack_public_key';
 
 export function getPaystackPublicKey(): string {
   try {
@@ -12,7 +9,7 @@ export function getPaystackPublicKey(): string {
       if (stored && stored.trim()) return stored.trim();
     }
   } catch {}
-  return DEFAULT_PAYSTACK_KEY;
+  return getVaultPaystackKey();
 }
 
 export function setPaystackPublicKey(key: string): void {

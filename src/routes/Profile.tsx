@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   LogOut,
   PencilLine,
-  Settings2,
   UserRound,
 } from 'lucide-react';
 import { useApp } from '@/state/useApp';
@@ -72,14 +71,9 @@ export function Profile() {
         title="Profile"
         description="Your creator identity, workspace details and plan."
         actions={
-          <>
-            <Button variant="secondary" icon={Settings2} onClick={() => navigate('/settings')}>
-              Settings
-            </Button>
-            <Button variant="primary" icon={PencilLine} onClick={openEdit}>
-              Edit profile
-            </Button>
-          </>
+          <Button variant="primary" icon={PencilLine} onClick={openEdit}>
+            Edit profile
+          </Button>
         }
       />
 

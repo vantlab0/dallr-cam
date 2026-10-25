@@ -41,6 +41,14 @@ export function SignIn() {
         title: 'Signed in',
       });
       navigate('/studio', { replace: true });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Sign-in failed. Check your credentials.';
+      setErrors({ password: msg });
+      pushToast({
+        tone: 'error',
+        title: 'Sign in failed',
+        description: msg,
+      });
     } finally {
       setLoading(false);
     }

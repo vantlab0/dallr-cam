@@ -2,6 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { createId } from '@/lib/id';
 import { createDefaultUser } from '@/lib/defaults';
 import {
+  getInitialSupabaseUser,
+  signInWithSupabase,
+  signUpWithSupabase,
+  signOutFromSupabase,
+} from '@/services/supabase/client';
+import {
   clearPersistedState,
   createDefaultState,
   loadPersistedState,
@@ -94,27 +100,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ? 'offline'
       : 'online';
 
+  useEffect(() => {
+    getInitialSupabaseUser().then((sbUser) => {
+      if (sbUser) {
+        setUser((current) => current || sbUser);
+      }
+    }).catch(() => {});
+  }, []);
+
   const signIn = useCallback(
-    async ({ email }: { email: string; password: string }) => {
-      setUser(userFromEmail(email));
+    async ({ email, password }: { email: string; password: string }) => {
+      try {
+        const sbUser = await signInWithSupabase({ email, password });
+        setUser(sbUser);
+      } catch (err: unknown) {
+        // Fallback for offline testing if needed, or rethrow
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network')) {
+          setUser(userFromEmail(email));
+          return;
+        }
+        throw err;
+      }
     },
     [],
   );
 
   const register = useCallback(
-    async ({ name, email }: { name: string; email: string; password: string }) => {
-      setUser({
-        ...createDefaultUser(),
-        id: createId('usr'),
-        name: name.trim() || 'User',
-        email: email.trim(),
-        plan: 'Standard',
-      });
+    async ({ name, email, password }: { name: string; email: string; password: string }) => {
+      try {
+        const { user: sbUser } = await signUpWithSupabase({ email, password, name });
+        setUser(sbUser);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network')) {
+          setUser({
+            ...createDefaultUser(),
+            id: createId('usr'),
+            name: name.trim() || 'User',
+            email: email.trim(),
+            plan: 'Standard',
+          });
+          return;
+        }
+        throw err;
+      }
     },
     [],
   );
 
   const signOut = useCallback(() => {
+    signOutFromSupabase().catch(() => {});
     setUser(null);
   }, []);
 

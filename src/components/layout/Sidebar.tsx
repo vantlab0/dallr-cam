@@ -11,7 +11,6 @@ import {
   Menu,
   PanelLeft,
   PanelLeftClose,
-  Settings2,
   WalletCards,
   X,
 } from 'lucide-react';
@@ -36,7 +35,6 @@ const billingNav = [
 
 const accountNav = [
   { to: '/profile', label: 'Profile', icon: CircleUserRound },
-  { to: '/settings', label: 'Settings', icon: Settings2 },
 ];
 
 function NavSection({
@@ -160,19 +158,6 @@ function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
             >
               <CircleUserRound className="size-3.5" aria-hidden="true" />
               Profile
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                onNavigate?.();
-                navigate('/settings');
-              }}
-              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[12px] text-white/65 transition hover:bg-white/[0.06] hover:text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-            >
-              <Settings2 className="size-3.5" aria-hidden="true" />
-              Settings
             </button>
             <div className="my-1 h-px bg-white/[0.06]" />
             <button

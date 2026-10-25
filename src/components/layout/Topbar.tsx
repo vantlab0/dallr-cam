@@ -15,7 +15,6 @@ const pageTitles: Record<string, { section: string; title: string }> = {
   '/wallet': { section: 'Billing', title: 'Wallet' },
   '/transactions': { section: 'Billing', title: 'Transactions' },
   '/profile': { section: 'Account', title: 'Profile' },
-  '/settings': { section: 'Account', title: 'Settings' },
 };
 
 export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {

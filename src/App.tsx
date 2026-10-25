@@ -11,7 +11,6 @@ import { Sessions } from '@/routes/Sessions';
 import { Wallet } from '@/routes/Wallet';
 import { Transactions } from '@/routes/Transactions';
 import { Profile } from '@/routes/Profile';
-import { Settings } from '@/routes/Settings';
 import { SignIn } from '@/routes/auth/SignIn';
 import { Register } from '@/routes/auth/Register';
 import { Onboarding } from '@/routes/Onboarding';
@@ -23,7 +22,6 @@ const titles: Record<string, string> = {
   '/wallet': 'Wallet',
   '/transactions': 'Transactions',
   '/profile': 'Profile',
-  '/settings': 'Settings',
   '/sign-in': 'Sign in',
   '/login': 'Sign in',
   '/register': 'Create account',
@@ -57,7 +55,6 @@ function AppFrame() {
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Route>

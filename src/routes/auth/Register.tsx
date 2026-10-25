@@ -63,6 +63,14 @@ export function Register() {
         description: 'Welcome to Dallr Cam! Set up your camera to get started.',
       });
       navigate('/onboarding', { replace: true });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Registration failed. Try again.';
+      setErrors({ email: msg });
+      pushToast({
+        tone: 'error',
+        title: 'Registration failed',
+        description: msg,
+      });
     } finally {
       setLoading(false);
     }
