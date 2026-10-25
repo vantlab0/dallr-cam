@@ -13,7 +13,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "tauri": "tauri",
+    "build:desktop": "pnpm build && tauri build",
     "build:win": "pnpm build && tauri build",
+    "build:mac": "pnpm build && tauri build --target universal-apple-darwin",
     "vcam:install": "cmd.exe /c scripts\\install-obs-virtualcam.bat"
   },
   "dependencies": {

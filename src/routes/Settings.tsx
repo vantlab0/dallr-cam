@@ -6,6 +6,7 @@ import {
   Database,
   Download,
   Info,
+  Monitor,
   MonitorCog,
   Palette,
   RotateCcw,
@@ -18,6 +19,7 @@ import { useApp } from '@/state/useApp';
 import { useToast } from '@/state/useToast';
 import { downloadTextFile } from '@/lib/download';
 import { isDesktopRuntime } from '@/lib/environment';
+import { DownloadAppModal } from '@/components/desktop/DownloadAppModal';
 import {
   formatCredits,
   formatDate,
@@ -115,6 +117,7 @@ export function Settings() {
   const [tab, setTab] = useState<SettingsTab>('general');
   const [rateInput, setRateInput] = useState(String(settings.usageRatePerMin));
   const [resetOpen, setResetOpen] = useState(false);
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const runningInDesktop = isDesktopRuntime();
 
   const [apiKeyInput, setApiKeyInput] = useState(() => {
@@ -663,6 +666,24 @@ export function Settings() {
               </Button>
             </div>
           </Card>
+
+          <Card className="p-4 sm:p-5">
+            <CardHeader
+              title="Desktop applications"
+              description="Download standalone installers for Windows and macOS with direct virtual camera exposure."
+              icon={<Monitor className="size-3.5" />}
+            />
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="primary"
+                icon={Download}
+                onClick={() => setDownloadModalOpen(true)}
+              >
+                Download for Windows & macOS
+              </Button>
+            </div>
+          </Card>
         </div>
       ) : null}
 
@@ -687,6 +708,11 @@ export function Settings() {
           Session history and your wallet credits will remain saved, while camera and prompt configurations will reset to default.
         </p>
       </Modal>
+
+      <DownloadAppModal
+        open={downloadModalOpen}
+        onClose={() => setDownloadModalOpen(false)}
+      />
     </div>
   );
 }
