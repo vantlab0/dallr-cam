@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react';
 import { Card, CardHeader } from '@/components/ui/Card';
-import { PRESETS } from '@/lib/mock-data';
+import { PRESETS } from '@/lib/defaults';
 import { cn } from '@/lib/utils';
 
 export function PresetGallery({

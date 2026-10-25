@@ -18,7 +18,7 @@ import { useApp } from '@/state/useApp';
 import { useToast } from '@/state/useToast';
 import { downloadTextFile, toCsv } from '@/lib/download';
 import { formatCredits, formatCreditsDecimal, formatDate, formatDateTime, formatDuration } from '@/lib/format';
-import { PRESETS } from '@/lib/mock-data';
+import { PRESETS } from '@/lib/defaults';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';

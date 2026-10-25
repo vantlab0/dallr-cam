@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createId } from '@/lib/id';
-import { createDefaultUser } from '@/lib/mock-data';
+import { createDefaultUser } from '@/lib/defaults';
 import {
   clearPersistedState,
   createDefaultState,

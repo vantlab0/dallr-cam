@@ -24,7 +24,7 @@ import {
   formatDuration,
 } from '@/lib/format';
 import { estimatedSecondsRemaining } from '@/lib/credits';
-import { DEFAULT_STUDIO_DRAFT } from '@/lib/mock-data';
+import { DEFAULT_STUDIO_DRAFT } from '@/lib/defaults';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardHeader, Divider } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';

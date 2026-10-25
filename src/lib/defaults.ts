@@ -9,16 +9,11 @@ import type {
   Wallet,
 } from '@/types';
 
-/**
- * All records in this file are fictional sample data for the interface preview.
- * They are never sent anywhere and must not be treated as real billing or usage.
- */
-
 export const DEFAULT_USER: User = {
   id: 'usr_creator',
   name: 'Creator',
   email: 'creator@dallr.studio',
-  plan: 'Studio Pro',
+  plan: 'Standard',
   joinedAt: new Date().toISOString(),
   workspaceId: 'ws_dallr_main',
   isDemo: false,
@@ -34,12 +29,6 @@ export const DEFAULT_WALLET: Wallet = {
 export const INITIAL_TRANSACTIONS: Transaction[] = [];
 
 export const INITIAL_SESSIONS: SessionRecord[] = [];
-
-// Backwards-compatible aliases
-export const MOCK_USER = DEFAULT_USER;
-export const MOCK_WALLET = DEFAULT_WALLET;
-export const MOCK_TRANSACTIONS = INITIAL_TRANSACTIONS;
-export const MOCK_SESSIONS = INITIAL_SESSIONS;
 
 export const PRESETS: Preset[] = [
   {
@@ -139,8 +128,3 @@ export function createDefaultUser(): User {
 export function createDefaultWallet(): Wallet {
   return { ...DEFAULT_WALLET };
 }
-
-export const createMockSessions = createDefaultSessions;
-export const createMockTransactions = createDefaultTransactions;
-export const createMockUser = createDefaultUser;
-export const createMockWallet = createDefaultWallet;

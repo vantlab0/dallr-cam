@@ -5,7 +5,7 @@ import {
   createDefaultWallet,
   DEFAULT_SETTINGS,
   DEFAULT_STUDIO_DRAFT,
-} from '@/lib/mock-data';
+} from '@/lib/defaults';
 import type { AppSettings, PersistedState } from '@/types';
 
 const STORAGE_KEY = 'dallr:state:v3';
