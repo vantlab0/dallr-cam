@@ -9,7 +9,7 @@ export function NotFound() {
       <EmptyState
         icon={Compass}
         title="Page not found"
-        description="The route you requested is not part of this preview. Use the workspace navigation or return to Live Studio to continue."
+        description="The page you requested could not be found."
         action={
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Link to="/studio">
@@ -24,9 +24,6 @@ export function NotFound() {
         }
         className="py-16"
       />
-      <p className="mt-6 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-white/18">
-        404 · Local interface preview
-      </p>
     </div>
   );
 }

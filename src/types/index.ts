@@ -24,7 +24,7 @@ export interface Wallet {
   balanceCredits: number;
   creditUsd: number;
   lifetimeTopUpUsd: number;
-  ngnPerUsdMock: number;
+  ngnPerUsd: number;
 }
 
 export type TransactionType = 'topup' | 'usage' | 'refund';
@@ -159,7 +159,7 @@ export interface LucySessionSnapshot {
 }
 
 export interface PersistedState {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   user: User | null;
   wallet: Wallet;
   settings: AppSettings;

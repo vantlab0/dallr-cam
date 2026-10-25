@@ -1,23 +1,23 @@
 import {
-  createMockSessions,
-  createMockTransactions,
-  createMockUser,
-  createMockWallet,
+  createDefaultSessions,
+  createDefaultTransactions,
+  createDefaultUser,
+  createDefaultWallet,
   DEFAULT_SETTINGS,
   DEFAULT_STUDIO_DRAFT,
 } from '@/lib/mock-data';
 import type { AppSettings, PersistedState } from '@/types';
 
-const STORAGE_KEY = 'dallr:state:v2';
+const STORAGE_KEY = 'dallr:state:v3';
 
 export function createDefaultState(): PersistedState {
   return {
-    version: 2,
-    user: createMockUser(),
-    wallet: createMockWallet(),
+    version: 3,
+    user: createDefaultUser(),
+    wallet: createDefaultWallet(),
     settings: structuredClone(DEFAULT_SETTINGS),
-    transactions: createMockTransactions(),
-    sessions: createMockSessions(),
+    transactions: createDefaultTransactions(),
+    sessions: createDefaultSessions(),
     studioDraft: { ...DEFAULT_STUDIO_DRAFT },
   };
 }
@@ -32,7 +32,7 @@ export function loadPersistedState(): PersistedState | null {
     if (!raw) return null;
 
     const parsed: unknown = JSON.parse(raw);
-    if (!isRecord(parsed) || parsed.version !== 2) return null;
+    if (!isRecord(parsed) || parsed.version !== 3) return null;
 
     const defaults = createDefaultState();
     const settings: AppSettings = isRecord(parsed.settings)
@@ -47,7 +47,7 @@ export function loadPersistedState(): PersistedState | null {
       : defaults.settings;
 
     return {
-      version: 2,
+      version: 3,
       user: isRecord(parsed.user) ? (parsed.user as unknown as PersistedState['user']) : null,
       wallet: isRecord(parsed.wallet)
         ? { ...defaults.wallet, ...(parsed.wallet as Partial<PersistedState['wallet']>) }

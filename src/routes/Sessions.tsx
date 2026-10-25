@@ -16,7 +16,6 @@ import {
 import type { SessionRecord, SessionStatus } from '@/types';
 import { useApp } from '@/state/useApp';
 import { useToast } from '@/state/useToast';
-import { useMockLoad } from '@/hooks/useMockLoad';
 import { downloadTextFile, toCsv } from '@/lib/download';
 import { formatCredits, formatCreditsDecimal, formatDate, formatDateTime, formatDuration } from '@/lib/format';
 import { PRESETS } from '@/lib/mock-data';
@@ -28,10 +27,7 @@ import { Input } from '@/components/ui/Form';
 import { FilterTabs } from '@/components/ui/SegmentedControl';
 import {
   EmptyState,
-  ErrorState,
   InlineNotice,
-  PageLoading,
-  Skeleton,
 } from '@/components/ui/Feedback';
 import { Drawer } from '@/components/ui/Overlay';
 import { CopyButton } from '@/components/ui/CopyButton';
@@ -53,10 +49,9 @@ const statusLabel: Record<SessionStatus, string> = {
 };
 
 export function Sessions() {
-  const { sessions, settings, setStudioDraft } = useApp();
+  const { sessions, setStudioDraft } = useApp();
   const { pushToast } = useToast();
   const navigate = useNavigate();
-  const { state, retry } = useMockLoad(settings.simulateDataError);
   const [filter, setFilter] = useState<SessionFilter>('all');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<SessionRecord | null>(null);
@@ -154,17 +149,17 @@ export function Sessions() {
       <PageHeader
         eyebrow="Workspace"
         title="Session history"
-        description="History of Lucy 2.5 realtime video transformation sessions in this workspace."
         actions={
           <>
-            <Button
-              variant="secondary"
-              icon={Download}
-              onClick={handleExport}
-              disabled={state !== 'ready' || filtered.length === 0}
-            >
-              Export CSV
-            </Button>
+            {filtered.length > 0 && (
+              <Button
+                variant="secondary"
+                icon={Download}
+                onClick={handleExport}
+              >
+                Export CSV
+              </Button>
+            )}
             <Link to="/studio">
               <Button variant="primary" icon={Play}>
                 Open Live Studio
@@ -174,50 +169,22 @@ export function Sessions() {
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {state === 'loading' ? (
-          <>
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Card key={index} className="p-4">
-                <Skeleton className="h-2.5 w-20" />
-                <Skeleton className="mt-3 h-5 w-24" />
-                <Skeleton className="mt-2 h-2 w-16" />
-              </Card>
-            ))}
-          </>
-        ) : (
-          <>
-            <Card className="p-4">
-              <Stat
-                label="Sessions"
-                value={String(counts.all)}
-                detail={`${counts.completed} completed · ${counts.failed} failed`}
-              />
-            </Card>
-            <Card className="p-4">
-              <Stat
-                label="Time in studio"
-                value={formatDuration(totals.duration)}
-                detail="Across all local records"
-              />
-            </Card>
-            <Card className="p-4">
-              <Stat
-                label="Estimated credits"
-                value={formatCredits(Math.round(totals.credits))}
-                detail="Not billed or deducted"
-              />
-            </Card>
-            <Card className="p-4">
-              <Stat
-                label="Live sessions"
-                value={String(totals.live)}
-                detail={totals.live > 0 ? 'Connected on this device' : 'Start one in Live Studio'}
-              />
-            </Card>
-          </>
-        )}
-      </div>
+      {sessions.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Card className="p-4">
+            <Stat label="Total sessions" value={String(counts.all)} />
+          </Card>
+          <Card className="p-4">
+            <Stat label="Total duration" value={formatDuration(totals.duration)} />
+          </Card>
+          <Card className="p-4">
+            <Stat label="Credits used" value={`${formatCredits(Math.round(totals.credits))} cr`} />
+          </Card>
+          <Card className="p-4">
+            <Stat label="Live sessions" value={String(totals.live)} />
+          </Card>
+        </div>
+      ) : null}
 
       <Card className="overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-white/[0.055] p-4 lg:flex-row lg:items-center lg:justify-between">
@@ -253,40 +220,12 @@ export function Sessions() {
           </div>
         </div>
 
-        {state === 'loading' ? (
-          <div className="p-4">
-            <PageLoading rows={5} label="Loading session history" />
-          </div>
-        ) : state === 'error' ? (
-          <div className="p-4">
-            <ErrorState
-              title="Could not load session history"
-              description="The local preview repository failed to respond. This error is being simulated from Settings → Data & about."
-              onRetry={retry}
-            />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="p-4">
+        {filtered.length === 0 ? (
+          <div className="p-8">
             <EmptyState
-              icon={filter === 'demo' || filter === 'live' ? Film : History}
-              title={
-                filter === 'live' && !query
-                  ? 'No live sessions yet'
-                  : filter === 'demo' && !query
-                    ? 'No dry runs yet'
-                    : filter === 'failed' && !query
-                      ? 'No failed sessions'
-                      : 'No matching sessions'
-              }
-              description={
-                filter === 'live' && !query
-                  ? 'Start a Lucy 2.5 session in Live Studio. Connected sessions are recorded here with metadata only.'
-                  : filter === 'demo' && !query
-                    ? 'Dry runs are older local session shells that did not process video. Start a live session in Live Studio to see a record here.'
-                    : filter === 'failed' && !query
-                      ? 'None of the local records are failed. Provider or connection failures would appear here.'
-                      : 'Try a different filter or search term. Live sessions and sample records live on this device only.'
-              }
+              icon={History}
+              title={query ? 'No matching sessions' : 'No sessions recorded yet'}
+              description={query ? 'Try a different search term.' : 'Start a live session in Live Studio to record your transformations here.'}
               action={
                 <div className="flex items-center gap-2">
                   <Link to="/studio">

@@ -1,12 +1,11 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useApp } from '@/state/useApp';
 import { useToast } from '@/state/useToast';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { Button } from '@/components/ui/Button';
-import { Checkbox, FormField, Input } from '@/components/ui/Form';
-import { InlineNotice } from '@/components/ui/Feedback';
+import { FormField, Input } from '@/components/ui/Form';
 import { PasswordField } from '@/components/auth/PasswordField';
 import { cn } from '@/lib/utils';
 
@@ -31,13 +30,11 @@ export function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [accepted, setAccepted] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
     password?: string;
     confirm?: string;
-    accepted?: string;
   }>({});
   const [loading, setLoading] = useState(false);
 
@@ -54,7 +51,6 @@ export function Register() {
     if (!emailPattern.test(email.trim())) nextErrors.email = 'Enter a valid email address.';
     if (password.length < 8) nextErrors.password = 'Use at least 8 characters.';
     if (confirm !== password) nextErrors.confirm = 'Passwords do not match.';
-    if (!accepted) nextErrors.accepted = 'Confirm that you understand this is a local demo.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -63,8 +59,7 @@ export function Register() {
       await register({ name: name.trim(), email: email.trim(), password });
       pushToast({
         tone: 'success',
-        title: 'Local account created',
-        description: 'No credentials were sent or stored beyond this profile.',
+        title: 'Account created',
       });
       navigate('/studio', { replace: true });
     } finally {
@@ -80,7 +75,7 @@ export function Register() {
     <AuthLayout
       eyebrow="Create account"
       title="Start your studio"
-      description="Create a local preview identity to explore the workspace. Registration is simulated and stores only a display name and email on this device."
+      description="Create your account to start streaming."
       footer={
         <span>
           Already have an account?{' '}
@@ -175,39 +170,10 @@ export function Register() {
           />
         </FormField>
 
-        <div className="pt-0.5">
-          <Checkbox
-            checked={accepted}
-            onCheckedChange={(next) => {
-              setAccepted(next);
-              clearError('accepted');
-            }}
-            label="I understand this is a local demo account."
-            description="No real registration, verification email or password storage takes place."
-          />
-          {errors.accepted ? (
-            <p className="mt-1 text-[10.5px] text-negative" role="alert">
-              {errors.accepted}
-            </p>
-          ) : null}
-        </div>
-
-        <Button type="submit" variant="primary" className="mt-1 w-full" loading={loading} iconRight={ArrowRight}>
-          {loading ? 'Creating account…' : 'Create demo account'}
+        <Button type="submit" variant="primary" className="mt-2 w-full" loading={loading} iconRight={ArrowRight}>
+          {loading ? 'Creating account…' : 'Create account'}
         </Button>
       </form>
-
-      <div className="mt-4">
-        <InlineNotice tone="neutral" icon={ShieldCheck} title="Local-only registration">
-          Your name and email are stored in local browser storage so the interface can greet you.
-          The password is validated for length but never stored or sent.
-        </InlineNotice>
-      </div>
-
-      <div className="mt-4 flex items-center justify-center gap-1.5 text-[9px] text-white/20">
-        <Sparkles className="size-2.5" aria-hidden="true" />
-        Dallr Studio preview · no account service
-      </div>
     </AuthLayout>
   );
 }

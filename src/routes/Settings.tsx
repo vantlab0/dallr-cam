@@ -6,16 +6,12 @@ import {
   Database,
   Download,
   Info,
-  Laptop,
   MonitorCog,
   Palette,
   RotateCcw,
   ServerCog,
-  Settings2,
-  ShieldAlert,
   Sparkles,
   Wand2,
-  WifiOff,
 } from 'lucide-react';
 import type { AccentTheme } from '@/types';
 import { useApp } from '@/state/useApp';
@@ -114,7 +110,6 @@ export function Settings() {
     updateNotifications,
     resetDemoData,
     setStudioDraft,
-    reconnect,
   } = useApp();
   const { pushToast } = useToast();
   const [tab, setTab] = useState<SettingsTab>('general');
@@ -220,22 +215,9 @@ export function Settings() {
     resetDemoData();
     pushToast({
       tone: 'success',
-      title: 'Demo workspace reset',
-      description: 'Sample wallet, sessions, transactions and settings were restored.',
+      title: 'Workspace reset',
+      description: 'Wallet, sessions, transactions and settings were restored to defaults.',
     });
-  };
-
-  const handleOfflineToggle = (next: boolean) => {
-    updateSettings({ simulateOffline: next });
-    if (next) {
-      pushToast({
-        tone: 'info',
-        title: 'Offline mode enabled',
-        description: 'Connection states and recovery UI are now visible across the app.',
-      });
-    } else {
-      void reconnect();
-    }
   };
 
   return (
@@ -449,7 +431,7 @@ export function Settings() {
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') event.currentTarget.blur();
                         }}
-                        aria-label="Demo usage rate per minute"
+                        aria-label="Usage rate per minute"
                         className="h-8 w-[72px] text-right text-[11px] tabular-nums"
                       />
                       <span className="text-[10px] text-white/30">cr/min</span>
@@ -494,7 +476,7 @@ export function Settings() {
                     pushToast({
                       tone: 'success',
                       title: 'Studio defaults restored',
-                      description: 'Prompt, preset, mirroring and demo rate were reset.',
+                      description: 'Prompt, preset, mirroring and rate were reset.',
                     });
                   }}
                 >
@@ -510,10 +492,6 @@ export function Settings() {
           </div>
 
           <div className="space-y-4">
-            <InlineNotice tone="warning" icon={ShieldAlert} title="Estimates only">
-              No renderer is attached. The demo rate changes time-left calculations and dry-run
-              credit estimates, never a wallet balance.
-            </InlineNotice>
             <Card className="p-4">
               <p className="text-[9.5px] font-semibold uppercase tracking-[0.15em] text-white/28">
                 Current estimate
@@ -523,7 +501,7 @@ export function Settings() {
               </p>
               <p className="mt-1 text-[10.5px] leading-[1.5] text-white/30">
                 {formatCredits(wallet.balanceCredits)} credits ÷{' '}
-                {settings.usageRatePerMin} credits per minute (4 credits/sec).
+                {settings.usageRatePerMin} credits per minute.
               </p>
             </Card>
           </div>
@@ -604,96 +582,10 @@ export function Settings() {
       ) : null}
 
       {tab === 'data' ? (
-        <div className="space-y-4" role="tabpanel" aria-label="Data and about">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card className="p-4 sm:p-5">
-              <CardHeader
-                title="Preview states"
-                description="Temporary switches to review loading, error and disconnected UI."
-                icon={<WifiOff className="size-3.5" />}
-                action={<Badge tone="warning">Demo controls</Badge>}
-              />
-              <div className="mt-2 divide-y divide-white/[0.05]">
-                <SettingRow
-                  title="Simulate offline"
-                  description="Shows the global disconnect banner and stops the active dry run. Reconnect works from the banner."
-                  control={
-                    <Switch
-                      checked={settings.simulateOffline}
-                      onCheckedChange={handleOfflineToggle}
-                      label="Simulate offline mode"
-                    />
-                  }
-                />
-                <SettingRow
-                  title="Simulate data errors"
-                  description="Makes Session history and Transactions load into their retryable error state."
-                  control={
-                    <Switch
-                      checked={settings.simulateDataError}
-                      onCheckedChange={(next) => updateSettings({ simulateDataError: next })}
-                      label="Simulate data loading errors"
-                    />
-                  }
-                />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link to="/transactions">
-                  <Button size="sm" variant="secondary">
-                    View transactions states
-                  </Button>
-                </Link>
-                <Link to="/sessions">
-                  <Button size="sm" variant="ghost">
-                    View session states
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-
-            <Card className="p-4 sm:p-5">
-              <CardHeader
-                title="Local data"
-                description="Everything in this workspace is stored in this browser profile."
-                icon={<Database className="size-3.5" />}
-              />
-              <div className="mt-4 space-y-2.5 text-[11px]">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-white/30">Session records</span>
-                  <span className="tabular-nums text-white/65">{sessions.length}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-white/30">Transactions</span>
-                  <span className="tabular-nums text-white/65">{transactions.length}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-white/30">Storage</span>
-                  <span className="text-white/65">Local browser storage</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-white/30">Video / audio</span>
-                  <span className="text-white/65">Not stored</span>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button size="sm" variant="secondary" icon={Download} onClick={handleExport}>
-                  Export JSON
-                </Button>
-                <Button
-                  size="sm"
-                  variant="danger"
-                  icon={RotateCcw}
-                  onClick={() => setResetOpen(true)}
-                >
-                  Reset demo data
-                </Button>
-              </div>
-            </Card>
-          </div>
-
+        <div className="space-y-4" role="tabpanel" aria-label="Data and credentials">
           <Card className="p-4 sm:p-5">
             <CardHeader
-              title="Decart credentials (Production & Web)"
+              title="Decart credentials"
               description="Configure your Decart API key or client token to connect live to Lucy 2.5."
               icon={<ServerCog className="size-3.5" />}
             />
@@ -702,9 +594,6 @@ export function Settings() {
                 <label className="text-[11px] font-medium text-white/70">
                   Decart API Key or Client Token
                 </label>
-                <p className="text-[10px] text-white/35">
-                  Saved only in your local browser profile. Used to start live Lucy 2.5 sessions.
-                </p>
                 <Input
                   type="password"
                   value={apiKeyInput}
@@ -717,9 +606,6 @@ export function Settings() {
                 <label className="text-[11px] font-medium text-white/70">
                   Custom Token Minting Endpoint (optional)
                 </label>
-                <p className="text-[10px] text-white/35">
-                  Custom server endpoint if your backend generates short-lived Decart tokens.
-                </p>
                 <Input
                   type="url"
                   value={endpointInput}
@@ -759,32 +645,23 @@ export function Settings() {
 
           <Card className="p-4 sm:p-5">
             <CardHeader
-              title="About this build"
-              description="Dallr Studio is an interface preview for a Decart Lucy 2.5 workflow."
-              icon={<Info className="size-3.5" />}
-              action={<Badge tone="accent">v0.1.0</Badge>}
+              title="Workspace data"
+              description="Manage your local workspace storage."
+              icon={<Database className="size-3.5" />}
             />
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[
-                { label: 'Interface', value: 'React + Tauri 2 shell', icon: Laptop },
-                { label: 'Runtime', value: runningInDesktop ? 'Tauri desktop webview' : 'Browser preview', icon: MonitorCog },
-                { label: 'Renderer', value: 'Not connected', icon: Sparkles },
-                { label: 'Payments', value: 'Not implemented', icon: ShieldAlert },
-                { label: 'Auth', value: 'Local simulation', icon: Settings2 },
-                { label: 'Sample data', value: 'Fictional · local only', icon: Database },
-              ].map((item) => (
-                <div key={item.label} className="rounded-xl border border-white/[0.06] bg-white/[0.018] p-3">
-                  <div className="flex items-center gap-1.5 text-white/28">
-                    <item.icon className="size-3" aria-hidden="true" />
-                    <span className="text-[9px] font-semibold uppercase tracking-[0.13em]">{item.label}</span>
-                  </div>
-                  <p className="mt-1.5 text-[11.5px] font-medium text-white/62">{item.value}</p>
-                </div>
-              ))}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" variant="secondary" icon={Download} onClick={handleExport}>
+                Export workspace JSON
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                icon={RotateCcw}
+                onClick={() => setResetOpen(true)}
+              >
+                Reset workspace
+              </Button>
             </div>
-            <p className="mt-4 text-[10.5px] leading-[1.6] text-white/26">
-              Connected to Decart Lucy 2.5 realtime video foundation model with 4 credits per second metered deduction.
-            </p>
           </Card>
         </div>
       ) : null}
@@ -806,9 +683,9 @@ export function Settings() {
           </>
         }
       >
-        <InlineNotice tone="warning" icon={ShieldAlert} title="Workspace preferences will be reset">
+        <p className="text-xs leading-relaxed text-white/60">
           Session history and your wallet credits will remain saved, while camera and prompt configurations will reset to default.
-        </InlineNotice>
+        </p>
       </Modal>
     </div>
   );

@@ -2,7 +2,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight, Plus } from 'lucide-react';
 import { useApp } from '@/state/useApp';
 import { Avatar } from '@/components/ui/Avatar';
-import { Badge } from '@/components/ui/Badge';
 import { ConnectionBadge } from '@/components/ui/ConnectionBadge';
 import { formatCredits } from '@/lib/format';
 import { MobileMenuButton } from './Sidebar';
@@ -34,9 +33,6 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <Badge tone="neutral" className="hidden md:inline-flex">
-          Preview build · demo data
-        </Badge>
         <span className="hidden md:block">
           <ConnectionBadge />
         </span>

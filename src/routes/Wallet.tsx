@@ -8,7 +8,6 @@ import {
   CreditCard,
   Info,
   Plus,
-  ShieldCheck,
   Sparkles,
   WalletCards,
 } from 'lucide-react';
@@ -35,9 +34,7 @@ import {
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardHeader, Divider, Eyebrow } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { FormField, Input } from '@/components/ui/Form';
-import { InlineNotice } from '@/components/ui/Feedback';
 import { Modal } from '@/components/ui/Overlay';
 import { Progress, Stat } from '@/components/ui/Progress';
 import { cn } from '@/lib/utils';
@@ -53,7 +50,7 @@ export function Wallet() {
   // Keep invalid or negative input from producing negative credits in the preview.
   const safeAmountUsd = Number.isFinite(amountUsd) && amountUsd > 0 ? amountUsd : 0;
   const credits = usdToCredits(safeAmountUsd);
-  const ngn = ngnEquivalent(safeAmountUsd, wallet.ngnPerUsdMock);
+  const ngn = ngnEquivalent(safeAmountUsd, wallet.ngnPerUsd);
   const amountValid = isValidTopUpUsd(amountUsd);
   const estimated = estimatedSecondsRemaining(wallet.balanceCredits, settings.usageRatePerMin);
   const balanceUsd = creditsToUsd(wallet.balanceCredits);
@@ -160,20 +157,17 @@ export function Wallet() {
                 <Progress
                   value={wallet.balanceCredits}
                   max={Math.max(wallet.balanceCredits, 25_000)}
-                  label="Sample credit balance"
+                  label="Credit balance"
                   tone="accent"
                 />
-                <p className="mt-1.5 text-[9.5px] text-white/24">
-                  Based on a demo rate of {settings.usageRatePerMin} credits per minute. Not a quote.
-                </p>
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-y-4 border-t border-white/[0.06] pt-4 sm:grid-cols-3">
-                <Stat label="Lifetime added" value={formatUsd(wallet.lifetimeTopUpUsd)} detail="Sample top-ups" />
+                <Stat label="Lifetime added" value={formatUsd(wallet.lifetimeTopUpUsd)} />
                 <Stat
                   label="Credit price"
                   value={formatUsd(wallet.creditUsd)}
-                  detail="Per credit · demo"
+                  detail="Per credit"
                   className="sm:pl-4 sm:border-l border-white/[0.06]"
                 />
                 <Stat
@@ -277,7 +271,6 @@ export function Wallet() {
               title="Add credits"
               description="Choose an amount or enter a custom top-up."
               icon={<CreditCard className="size-3.5" />}
-              action={<Badge tone="accent">Mock checkout</Badge>}
             />
 
             <div className="mt-4 grid grid-cols-2 gap-2">
@@ -363,9 +356,6 @@ export function Wallet() {
                   ≈ {formatNgn(ngn)}
                 </span>
               </div>
-              <p className="text-[9px] leading-[1.5] text-white/22">
-                Conversion calculated at {formatNgn(wallet.ngnPerUsdMock)} NGN per $1 USD.
-              </p>
             </div>
 
             <Button
@@ -377,29 +367,8 @@ export function Wallet() {
               Top up credits
             </Button>
           </Card>
-
-          <Card className="p-4">
-            <div className="flex items-start gap-2.5">
-              <ShieldCheck className="mt-px size-3.5 shrink-0 text-positive/60" aria-hidden="true" />
-              <div>
-                <p className="text-[11px] font-medium text-white/60">Secure payment</p>
-                <p className="mt-1 text-[10.5px] leading-[1.55] text-white/32">
-                  Top-up credits are added immediately to your workspace wallet balance upon confirmation.
-                </p>
-                <div className="mt-2 flex items-center gap-2">
-                  <Badge tone="positive">Instant allocation</Badge>
-                  <Badge tone="neutral">Card / Transfer</Badge>
-                </div>
-              </div>
-            </div>
-          </Card>
         </div>
       </div>
-
-      <InlineNotice tone="accent" icon={Info} title="Billing rate & credit pricing">
-        Credits are priced at $0.02 each ($20 buys 1,000 credits). Live studio rendering with Decart Lucy 2.5
-        deducts 4 credits per second while streaming.
-      </InlineNotice>
 
       <Modal
         open={checkoutOpen}

@@ -1,25 +1,22 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { ArrowRight, KeyRound, Mail, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Mail } from 'lucide-react';
 import { useApp } from '@/state/useApp';
 import { useToast } from '@/state/useToast';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { Button } from '@/components/ui/Button';
 import { FormField, Input } from '@/components/ui/Form';
-import { InlineNotice } from '@/components/ui/Feedback';
 import { Modal } from '@/components/ui/Overlay';
 import { PasswordField } from '@/components/auth/PasswordField';
 
-const DEMO_EMAIL = 'ada@dallr.studio';
-const DEMO_PASSWORD = 'dallr-demo';
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function SignIn() {
   const { user, signIn } = useApp();
   const { pushToast } = useToast();
   const navigate = useNavigate();
-  const [email, setEmail] = useState(DEMO_EMAIL);
-  const [password, setPassword] = useState(DEMO_PASSWORD);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -42,7 +39,6 @@ export function SignIn() {
       pushToast({
         tone: 'success',
         title: 'Signed in',
-        description: 'Demo authentication only — no credentials were verified.',
       });
       navigate('/studio', { replace: true });
     } finally {
@@ -50,17 +46,11 @@ export function SignIn() {
     }
   };
 
-  const fillDemo = () => {
-    setEmail(DEMO_EMAIL);
-    setPassword(DEMO_PASSWORD);
-    setErrors({});
-  };
-
   return (
     <AuthLayout
       eyebrow="Welcome back"
       title="Sign in to your studio"
-      description="Continue to the Dallr workspace. This preview uses a local demo account and does not verify credentials."
+      description="Continue to the Dallr workspace."
       footer={
         <span>
           New to Dallr?{' '}
@@ -128,37 +118,13 @@ export function SignIn() {
         </Button>
       </form>
 
-      <button
-        type="button"
-        onClick={fillDemo}
-        className="mt-2 w-full rounded-lg border border-dashed border-white/[0.09] bg-white/[0.015] px-3 py-2 text-left transition hover:border-white/[0.15] hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-      >
-        <span className="flex items-center gap-2 text-[10.5px] font-medium text-white/55">
-          <Sparkles className="size-3 text-accent/70" aria-hidden="true" />
-          Use demo account
-        </span>
-        <span className="mt-0.5 block font-mono text-[9.5px] text-white/25">
-          {DEMO_EMAIL} · {DEMO_PASSWORD}
-        </span>
-      </button>
 
-      <div className="mt-4">
-        <InlineNotice tone="neutral" icon={ShieldCheck} title="Demo authentication">
-          Any valid-looking email and 6+ character password will sign in. The form is not connected
-          to an auth service, and no password is stored or transmitted.
-        </InlineNotice>
-      </div>
-
-      <div className="mt-4 flex items-center justify-center gap-1.5 text-[9px] text-white/20">
-        <KeyRound className="size-2.5" aria-hidden="true" />
-        Local preview session · resets from Settings
-      </div>
 
       <Modal
         open={forgotOpen}
         onClose={() => setForgotOpen(false)}
-        title="Password reset unavailable"
-        description="Recovery requires the account service."
+        title="Reset password"
+        description="Password recovery instructions."
         size="sm"
         footer={
           <Button variant="secondary" onClick={() => setForgotOpen(false)}>
@@ -167,13 +133,8 @@ export function SignIn() {
         }
       >
         <div className="space-y-3">
-          <InlineNotice tone="warning" icon={KeyRound} title="Not implemented in this build">
-            Dallr has no account backend, email delivery or password store. Use the demo account
-            button on the sign-in form to continue.
-          </InlineNotice>
-          <p className="text-[11px] leading-[1.6] text-white/32">
-            In production this flow would send a time-limited reset link to the verified account
-            email.
+          <p className="text-xs leading-relaxed text-white/50">
+            Enter your account email to receive a password reset link.
           </p>
         </div>
       </Modal>

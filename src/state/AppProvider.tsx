@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createId } from '@/lib/id';
-import { createMockUser, MOCK_USER } from '@/lib/mock-data';
+import { createDefaultUser } from '@/lib/mock-data';
 import {
   clearPersistedState,
   createDefaultState,
@@ -18,13 +18,6 @@ import type {
 import { AppContext, type SessionRecordInput } from './app-context';
 import { useToast } from './useToast';
 
-const BOOT_DELAY_MS = 700;
-const AUTH_DELAY_MS = 650;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
 function titleCase(value: string): string {
   return value
     .replace(/[._-]+/g, ' ')
@@ -35,16 +28,13 @@ function titleCase(value: string): string {
 }
 
 function userFromEmail(email: string): User {
-  if (email.toLowerCase() === MOCK_USER.email) {
-    return createMockUser();
-  }
-  const localPart = email.split('@')[0] ?? 'Creator';
+  const localPart = email.split('@')[0] ?? 'User';
   return {
-    ...createMockUser(),
+    ...createDefaultUser(),
     id: createId('usr'),
-    name: titleCase(localPart) || 'Creator',
+    name: titleCase(localPart) || 'User',
     email,
-    plan: 'Local preview',
+    plan: 'Standard',
   };
 }
 
@@ -63,8 +53,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { pushToast } = useToast();
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setBooting(false), BOOT_DELAY_MS);
-    return () => window.clearTimeout(timer);
+    setBooting(false);
   }, []);
 
   useEffect(() => {
@@ -89,7 +78,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (booting) return;
     savePersistedState({
-      version: 1,
+      version: 3,
       user,
       wallet,
       settings,
@@ -107,7 +96,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(
     async ({ email }: { email: string; password: string }) => {
-      await delay(AUTH_DELAY_MS);
       setUser(userFromEmail(email));
     },
     [],
@@ -115,13 +103,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async ({ name, email }: { name: string; email: string; password: string }) => {
-      await delay(AUTH_DELAY_MS);
       setUser({
-        ...createMockUser(),
+        ...createDefaultUser(),
         id: createId('usr'),
-        name,
-        email,
-        plan: 'Local preview',
+        name: name.trim() || 'User',
+        email: email.trim(),
+        plan: 'Standard',
       });
     },
     [],
@@ -257,7 +244,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     reconnectingRef.current = true;
     setReconnecting(true);
     setSettings((current) => ({ ...current, simulateOffline: false }));
-    await delay(1_100);
+    await new Promise((resolve) => window.setTimeout(resolve, 300));
     reconnectingRef.current = false;
     setReconnecting(false);
 

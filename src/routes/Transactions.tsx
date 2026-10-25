@@ -15,7 +15,6 @@ import {
 import type { Transaction, TransactionStatus, TransactionType } from '@/types';
 import { useApp } from '@/state/useApp';
 import { useToast } from '@/state/useToast';
-import { useMockLoad } from '@/hooks/useMockLoad';
 import { downloadTextFile, toCsv } from '@/lib/download';
 import { formatCredits, formatDate, formatDateTime, formatUsd } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -26,10 +25,7 @@ import { Input } from '@/components/ui/Form';
 import { FilterTabs } from '@/components/ui/SegmentedControl';
 import {
   EmptyState,
-  ErrorState,
   InlineNotice,
-  PageLoading,
-  Skeleton,
 } from '@/components/ui/Feedback';
 import { Modal } from '@/components/ui/Overlay';
 import { CopyButton } from '@/components/ui/CopyButton';
@@ -72,9 +68,9 @@ const typeMeta: Record<
 };
 
 export function Transactions() {
-  const { transactions, wallet, settings } = useApp();
+  const { transactions, wallet } = useApp();
   const { pushToast } = useToast();
-  const { state, retry } = useMockLoad(settings.simulateDataError);
+  const state = 'ready' as const;
   const [filter, setFilter] = useState<TransactionFilter>('all');
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Transaction | null>(null);
@@ -180,117 +176,86 @@ export function Transactions() {
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {state === 'loading' ? (
-          <>
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Card key={index} className="p-4">
-                <Skeleton className="h-2.5 w-20" />
-                <Skeleton className="mt-3 h-5 w-24" />
-                <Skeleton className="mt-2 h-2 w-16" />
-              </Card>
-            ))}
-          </>
-        ) : (
-          <>
-            <Card className="p-4">
-              <div className="flex items-start justify-between">
-                <Stat
-                  label="Current balance"
-                  value={`${formatCredits(wallet.balanceCredits)} cr`}
-                  detail="Sample available credit"
-                />
-                <span className="grid size-7 place-items-center rounded-lg border border-accent/15 bg-accent/[0.06] text-accent/80">
-                  <CircleDollarSign className="size-3.5" aria-hidden="true" />
-                </span>
-              </div>
-            </Card>
-            <Card className="p-4">
+      {transactions.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Card className="p-4">
+            <div className="flex items-start justify-between">
               <Stat
-                label="Total added"
-                value={formatUsd(totals.added)}
-                detail={`${counts.topup} completed top-ups`}
+                label="Current balance"
+                value={`${formatCredits(wallet.balanceCredits)} cr`}
               />
-            </Card>
-            <Card className="p-4">
-              <Stat
-                label="Total spent"
-                value={formatUsd(totals.spent)}
-                detail={`${formatCredits(totals.credits)} credits used`}
-              />
-            </Card>
-            <Card className="p-4">
-              <Stat
-                label="Refunds"
-                value="$0.00"
-                detail={counts.refund === 0 ? 'None on record' : `${counts.refund} entries`}
-              />
-            </Card>
-          </>
-        )}
-      </div>
+              <span className="grid size-7 place-items-center rounded-lg border border-accent/15 bg-accent/[0.06] text-accent/80">
+                <CircleDollarSign className="size-3.5" aria-hidden="true" />
+              </span>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <Stat label="Total added" value={formatUsd(totals.added)} />
+          </Card>
+          <Card className="p-4">
+            <Stat label="Total spent" value={formatUsd(totals.spent)} />
+          </Card>
+          <Card className="p-4">
+            <Stat label="Refunds" value="$0.00" />
+          </Card>
+        </div>
+      ) : null}
 
       <Card className="overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-white/[0.055] p-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-2">
-            <Filter className="size-3.5 text-white/30" aria-hidden="true" />
-            <FilterTabs<TransactionFilter>
-              label="Filter transactions"
-              value={filter}
-              onChange={(value) => {
-                setFilter(value);
-                setSelected(null);
-              }}
-              options={[
-                { value: 'all', label: 'All', count: counts.all },
-                { value: 'topup', label: 'Top-ups', count: counts.topup },
-                { value: 'usage', label: 'Usage', count: counts.usage },
-                { value: 'refund', label: 'Refunds', count: counts.refund },
-              ]}
-            />
+        {transactions.length > 0 && (
+          <div className="flex flex-col gap-3 border-b border-white/[0.055] p-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="size-3.5 text-white/30" aria-hidden="true" />
+              <FilterTabs<TransactionFilter>
+                label="Filter transactions"
+                value={filter}
+                onChange={(value) => {
+                  setFilter(value);
+                  setSelected(null);
+                }}
+                options={[
+                  { value: 'all', label: 'All', count: counts.all },
+                  { value: 'topup', label: 'Top-ups', count: counts.topup },
+                  { value: 'usage', label: 'Usage', count: counts.usage },
+                  { value: 'refund', label: 'Refunds', count: counts.refund },
+                ]}
+              />
+            </div>
+            <div className="relative w-full lg:w-[260px]">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-white/25"
+                aria-hidden="true"
+              />
+              <Input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search transactions"
+                aria-label="Search transactions"
+                className="h-8 pl-8 text-[11.5px]"
+              />
+            </div>
           </div>
-          <div className="relative w-full lg:w-[260px]">
-            <Search
-              className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-white/25"
-              aria-hidden="true"
-            />
-            <Input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search description or reference"
-              aria-label="Search transactions"
-              className="h-8 pl-8 text-[11.5px]"
-            />
-          </div>
-        </div>
+        )}
 
-        {state === 'loading' ? (
-          <div className="p-4">
-            <PageLoading rows={6} label="Loading transactions" />
-          </div>
-        ) : state === 'error' ? (
-          <div className="p-4">
-            <ErrorState
-              title="Could not load transaction ledger"
-              description="The transaction repository failed to respond. Please retry."
-              onRetry={retry}
-            />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="p-4">
+        {filtered.length === 0 ? (
+          <div className="p-8">
             <EmptyState
               icon={ReceiptText}
-              title={filter === 'refund' && !query ? 'No refunds on record' : 'No transactions recorded'}
-              description={
-                filter === 'refund' && !query
-                  ? 'No refund transactions found for this account.'
-                  : 'Transactions will appear here when you top up credits or run live studio sessions.'
-              }
+              title={query ? 'No matching transactions' : 'No transactions yet'}
+              description={query ? 'Try a different search term.' : 'Transactions will appear here when you top up credits or run live sessions.'}
               action={
-                <Button size="sm" variant="secondary" onClick={clearFilters}>
-                  Clear filters
-                </Button>
+                query || filter !== 'all' ? (
+                  <Button size="sm" variant="secondary" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                ) : (
+                  <Link to="/wallet">
+                    <Button size="sm" variant="primary">
+                      Top up credits
+                    </Button>
+                  </Link>
+                )
               }
             />
           </div>

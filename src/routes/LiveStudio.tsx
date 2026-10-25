@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Terminal } from 'lucide-react';
 import { useApp } from '@/state/useApp';
 import { useToast } from '@/state/useToast';
 import { useLucySession } from '@/hooks/useLucySession';
 import { useCameraDevices } from '@/hooks/useCameraDevices';
 import type { LucySessionSummary } from '@/services/decart/session';
 import { estimatedSecondsRemaining } from '@/lib/credits';
-import { Button } from '@/components/ui/Button';
-import { InlineNotice } from '@/components/ui/Feedback';
-import { Modal } from '@/components/ui/Overlay';
 import { StudioStage } from '@/components/studio/StudioStage';
 
 function useObjectUrl(file: File | null): string | null {
@@ -47,7 +43,6 @@ export function LiveStudio() {
   const [promptError, setPromptError] = useState<string | null>(null);
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
-  const [notesOpen, setNotesOpen] = useState(false);
   const [showPip, setShowPip] = useState(true);
 
   const referenceUrl = useObjectUrl(referenceFile);
@@ -106,8 +101,6 @@ export function LiveStudio() {
     stop,
     setPrompt: setLivePrompt,
     setReference: setLiveReference,
-    endpoint,
-    credentialsConfigured,
   } = useLucySession({ onEnded: handleEnded });
 
   const camera = useCameraDevices(settings.rememberCamera);
@@ -118,7 +111,6 @@ export function LiveStudio() {
   const controlsBusy = status === 'requesting-camera' || status === 'connecting';
   const sessionActive = isLive || controlsBusy;
   const fatalError = snapshot.error?.fatal ? snapshot.error : null;
-  const credentialIssue = snapshot.error?.code.startsWith('credential-') ? snapshot.error : null;
 
   const usageRate = settings.usageRatePerMin;
   const estimatedRemaining = estimatedSecondsRemaining(wallet.balanceCredits, usageRate);
@@ -278,7 +270,6 @@ export function LiveStudio() {
         onStart={handleStart}
         onStop={() => stop('user')}
         onRetry={handleStart}
-        onOpenNotes={() => setNotesOpen(true)}
         onReconnect={() => void reconnect()}
         prompt={prompt}
         onPromptChange={handlePromptChange}
@@ -287,119 +278,6 @@ export function LiveStudio() {
         onReferenceChange={handleReferenceChange}
         updatePending={snapshot.updatePending}
       />
-
-      <Modal
-        open={notesOpen}
-        onClose={() => setNotesOpen(false)}
-        title="Integration notes"
-        description="What this build connects to, and what it deliberately does not."
-        size="md"
-        footer={
-          <Button variant="secondary" onClick={() => setNotesOpen(false)}>
-            Close
-          </Button>
-        }
-      >
-        <div className="space-y-4">
-          <InlineNotice
-            tone={credentialsConfigured && !credentialIssue ? 'accent' : 'warning'}
-            icon={Terminal}
-            title={
-              credentialIssue
-                ? credentialIssue.title
-                : credentialsConfigured
-                  ? 'Live Lucy 2.5 integration'
-                  : 'Session service not configured'
-            }
-          >
-            {credentialIssue
-              ? credentialIssue.message
-              : credentialsConfigured
-                ? 'The studio requests a short-lived client token from your backend, then opens a WebRTC session with Decart Lucy 2.5. The permanent API key never reaches the frontend.'
-                : 'Add DECART_API_KEY to .env.local and restart pnpm dev, or point VITE_DECART_TOKEN_ENDPOINT at a hosted token service that returns { "apiKey": "..." }.'}
-          </InlineNotice>
-
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-positive/70">
-                Implemented
-              </p>
-              <ul className="mt-2.5 space-y-2 text-[11.5px] leading-[1.45] text-white/45">
-                <li>Decart Lucy 2.5 realtime WebRTC</li>
-                <li>Camera capture after explicit Start</li>
-                <li>Live prompt and reference updates</li>
-                <li>Live 4 credits/second rendering deduction</li>
-                <li>Short-lived token from your backend</li>
-                <li>Mirror handling and session cleanup</li>
-              </ul>
-            </div>
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-warning/70">
-                Not implemented
-              </p>
-              <ul className="mt-2.5 space-y-2 text-[11.5px] leading-[1.45] text-white/45">
-                <li>Virtual camera driver</li>
-                <li>Video or audio recording</li>
-                <li>Hosted token service for packaged builds</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3.5">
-            <p className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-white/28">
-              Token service
-            </p>
-            <p className="mt-1.5 break-all font-mono text-[10.5px] text-white/55">
-              {endpoint ?? 'Not configured'}
-            </p>
-            <p className="mt-1.5 text-[10.5px] leading-[1.55] text-white/30">
-              {endpoint && credentialIssue?.code === 'credential-not-configured'
-                ? 'The endpoint is running, but DECART_API_KEY is missing. Add it to .env.local and restart pnpm dev.'
-                : credentialIssue?.code === 'credential-unauthorized'
-                  ? 'The endpoint reached Decart, but the server-side API key was rejected. Replace DECART_API_KEY and restart the service.'
-                  : endpoint === '/api/realtime-token'
-                    ? 'Local Vite endpoint. It reads DECART_API_KEY in Node and is available only while pnpm dev is running.'
-                    : endpoint
-                      ? 'Hosted endpoint. It must keep the Decart API key server-side and return a short-lived client token.'
-                      : 'A packaged desktop build cannot mint tokens by itself. Configure a hosted token endpoint before shipping.'}
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
-              Decart Lucy 2.5 Capabilities & Edit Types
-            </p>
-            <p className="mt-1 text-[11px] leading-[1.5] text-white/50">
-              Transform any video in realtime at 720p 30fps. The prompt and reference image are passed in <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-[10px] text-white/80">initialState</code> so the first frame is already transformed without flashing raw camera feed.
-            </p>
-            <div className="mt-2.5 grid grid-cols-2 gap-2 text-[10.5px] leading-[1.45] text-white/60">
-              <div className="rounded-lg border border-white/[0.05] bg-white/[0.015] p-2">
-                <span className="font-medium text-white/85">Character swap:</span> Replace character with reference identity
-              </div>
-              <div className="rounded-lg border border-white/[0.05] bg-white/[0.015] p-2">
-                <span className="font-medium text-white/85">Virtual try-on:</span> Swap clothes & accessories from reference
-              </div>
-              <div className="rounded-lg border border-white/[0.05] bg-white/[0.015] p-2">
-                <span className="font-medium text-white/85">Background:</span> Cleanly alter room or environment
-              </div>
-              <div className="rounded-lg border border-white/[0.05] bg-white/[0.015] p-2">
-                <span className="font-medium text-white/85">Add / Replace:</span> Insert new objects or swap existing items
-              </div>
-              <div className="rounded-lg border border-white/[0.05] bg-white/[0.015] p-2">
-                <span className="font-medium text-white/85">Style & Visual FX:</span> 35mm film, lighting, embers & smoke
-              </div>
-              <div className="rounded-lg border border-white/[0.05] bg-white/[0.015] p-2">
-                <span className="font-medium text-white/85">Remove:</span> Clean reconstruction with inpainting
-              </div>
-            </div>
-          </div>
-
-          <p className="text-[11px] leading-[1.6] text-white/32">
-            Live sessions record actual transformation metadata, elapsed rendering seconds, and live credit
-            deductions at 4 credits/sec. Every completed session is logged in Session History and Transactions.
-          </p>
-        </div>
-      </Modal>
     </div>
   );
 }

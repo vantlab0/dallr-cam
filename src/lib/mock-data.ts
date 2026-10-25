@@ -14,26 +14,32 @@ import type {
  * They are never sent anywhere and must not be treated as real billing or usage.
  */
 
-export const MOCK_USER: User = {
+export const DEFAULT_USER: User = {
   id: 'usr_creator',
   name: 'Creator',
   email: 'creator@dallr.studio',
   plan: 'Studio Pro',
-  joinedAt: '2026-02-14T09:30:00.000Z',
+  joinedAt: new Date().toISOString(),
   workspaceId: 'ws_dallr_main',
   isDemo: false,
 };
 
-export const MOCK_WALLET: Wallet = {
-  balanceCredits: 2_400,
+export const DEFAULT_WALLET: Wallet = {
+  balanceCredits: 0,
   creditUsd: CREDIT_USD,
-  lifetimeTopUpUsd: 48,
-  ngnPerUsdMock: 1_650,
+  lifetimeTopUpUsd: 0,
+  ngnPerUsd: 1_650,
 };
 
-export const MOCK_TRANSACTIONS: Transaction[] = [];
+export const INITIAL_TRANSACTIONS: Transaction[] = [];
 
-export const MOCK_SESSIONS: SessionRecord[] = [];
+export const INITIAL_SESSIONS: SessionRecord[] = [];
+
+// Backwards-compatible aliases
+export const MOCK_USER = DEFAULT_USER;
+export const MOCK_WALLET = DEFAULT_WALLET;
+export const MOCK_TRANSACTIONS = INITIAL_TRANSACTIONS;
+export const MOCK_SESSIONS = INITIAL_SESSIONS;
 
 export const PRESETS: Preset[] = [
   {
@@ -94,11 +100,11 @@ export const PRESETS: Preset[] = [
 
 export const DEFAULT_PRESET_ID = PRESETS[0]!.id;
 
-export const DEFAULT_PROMPT = PRESETS[0]!.prompt;
+export const DEFAULT_PROMPT = '';
 
 export const DEFAULT_STUDIO_DRAFT: StudioDraft = {
   prompt: DEFAULT_PROMPT,
-  presetId: DEFAULT_PRESET_ID,
+  presetId: null,
   revision: 0,
 };
 
@@ -118,18 +124,23 @@ export const DEFAULT_SETTINGS: AppSettings = {
   simulateDataError: false,
 };
 
-export function createMockSessions(): SessionRecord[] {
-  return MOCK_SESSIONS.map((session) => ({ ...session }));
+export function createDefaultSessions(): SessionRecord[] {
+  return [];
 }
 
-export function createMockTransactions(): Transaction[] {
-  return MOCK_TRANSACTIONS.map((transaction) => ({ ...transaction }));
+export function createDefaultTransactions(): Transaction[] {
+  return [];
 }
 
-export function createMockUser(): User {
-  return { ...MOCK_USER };
+export function createDefaultUser(): User {
+  return { ...DEFAULT_USER };
 }
 
-export function createMockWallet(): Wallet {
-  return { ...MOCK_WALLET };
+export function createDefaultWallet(): Wallet {
+  return { ...DEFAULT_WALLET };
 }
+
+export const createMockSessions = createDefaultSessions;
+export const createMockTransactions = createDefaultTransactions;
+export const createMockUser = createDefaultUser;
+export const createMockWallet = createDefaultWallet;

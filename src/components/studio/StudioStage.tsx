@@ -7,13 +7,11 @@ import {
   FlipHorizontal2,
   Grid2x2,
   ImagePlus,
-  Info,
   LoaderCircle,
   Play,
   RefreshCw,
   Sparkles,
   Square,
-  Terminal,
   Tv,
   Video,
   WalletCards,
@@ -152,12 +150,10 @@ function StagePlaceholder({
   status,
   error,
   isOnline,
-  onOpenNotes,
 }: {
   status: LucySessionStatus;
   error: LucySessionError | null;
   isOnline: boolean;
-  onOpenNotes: () => void;
 }) {
   return (
     <div
@@ -177,16 +173,6 @@ function StagePlaceholder({
               💡 {error.hint}
             </p>
           ) : null}
-          <div className="mt-3.5 flex items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={onOpenNotes}
-              className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[10.5px] font-medium text-white/40 transition hover:bg-white/[0.06] hover:text-white"
-            >
-              <Terminal className="size-3" aria-hidden="true" />
-              Integration notes
-            </button>
-          </div>
         </div>
       ) : (
         <>
@@ -194,15 +180,12 @@ function StagePlaceholder({
             <Sparkles className="size-5" aria-hidden="true" />
           </span>
           <p className="mt-3 text-[14px] font-medium text-white/85">
-            {status === 'stopped' ? 'Session ended' : 'Decart Lucy 2.5 Realtime'}
+            {status === 'stopped' ? 'Session ended' : 'Decart Lucy 2.5'}
           </p>
           <p className="mt-1 max-w-[360px] text-[11px] leading-[1.55] text-white/35">
             {!isOnline
               ? 'Reconnect to network before starting a session.'
-              : 'Enter a prompt or upload a reference below, then click Start Session.'}
-          </p>
-          <p className="mt-2.5 text-[9.5px] font-mono uppercase tracking-[0.14em] text-white/20">
-            1280 × 720 · 30 fps · 4 cr/sec
+              : 'Enter a prompt or reference image, then start streaming.'}
           </p>
         </>
       )}
@@ -229,7 +212,6 @@ export function StudioStage({
   onStart,
   onStop,
   onRetry,
-  onOpenNotes,
   onReconnect,
   prompt,
   onPromptChange,
@@ -262,7 +244,6 @@ export function StudioStage({
   onStart: () => void;
   onStop: () => void;
   onRetry: () => void;
-  onOpenNotes: () => void;
   onReconnect: () => void;
   prompt: string;
   onPromptChange: (value: string) => void;
@@ -374,7 +355,6 @@ export function StudioStage({
             status={status}
             error={error}
             isOnline={isOnline}
-            onOpenNotes={onOpenNotes}
           />
         ) : referenceUrl && !remoteStream ? (
           <div className="absolute inset-0 overflow-hidden bg-[#07080b]">
@@ -403,7 +383,6 @@ export function StudioStage({
             status={status}
             error={error}
             isOnline={isOnline}
-            onOpenNotes={onOpenNotes}
           />
         ) : null}
 
@@ -623,16 +602,6 @@ export function StudioStage({
             <Sparkles className="size-3 text-accent" />
             <span>Lucy 2.5 · 720p</span>
           </span>
-
-          {/* Integration Notes */}
-          <button
-            type="button"
-            onClick={onOpenNotes}
-            className="grid size-8 place-items-center rounded-full border border-white/10 bg-black/45 text-white/60 backdrop-blur-xl hover:text-white"
-            title="Integration notes"
-          >
-            <Info className="size-3.5" />
-          </button>
         </div>
       </div>
 

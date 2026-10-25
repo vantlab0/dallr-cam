@@ -159,7 +159,7 @@ export function SessionBar({
 
         <div className="flex shrink-0 items-center justify-between gap-2 xl:justify-end">
           <Badge tone={isOnline ? 'neutral' : 'negative'} dot>
-            {isOnline ? `Lucy 2.5 · ${formatCredits(usageRatePerMin)} cr/min demo` : 'Offline'}
+            {isOnline ? `Lucy 2.5 · ${formatCredits(usageRatePerMin)} cr/min` : 'Offline'}
           </Badge>
           {!isOnline ? <WifiOff className="size-3.5 text-negative/70" aria-hidden="true" /> : null}
         </div>
