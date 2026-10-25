@@ -619,6 +619,20 @@ export class LucySessionService {
 
     this.localStream = stream;
     const track = stream.getVideoTracks()[0];
+    if (track) {
+      console.log('[Dallr Camera Track Details]:', {
+        label: track.label,
+        muted: track.muted,
+        enabled: track.enabled,
+        readyState: track.readyState,
+        settings: track.getSettings?.(),
+      });
+      if (track.muted) {
+        console.warn(
+          '[Dallr Camera Muted Warning]: Camera track is reported as MUTED by the browser/OS. Check if a physical privacy switch is active or another app is locking the camera.',
+        );
+      }
+    }
     const settings = track?.getSettings();
     this.cameraLabel = track?.label?.trim() || 'Camera';
     this.mirror = resolveMirrorOption(input.mirror, settings?.facingMode);
