@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "decart-docs": {
+      "url": "https://docs.platform.decart.ai/mcp",
+      "serverUrl": "https://docs.platform.decart.ai/mcp"
+    }
+  }
+}

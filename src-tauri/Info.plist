@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSCameraUsageDescription</key>
+  <string>Dallr Studio uses your camera for the local preview in Live Studio. Camera frames are not recorded, uploaded or sent to a renderer in this preview build.</string>
+</dict>
+</plist>
