@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
 import { Terminal } from 'lucide-react';
 import { useApp } from '@/state/useApp';
 import { useToast } from '@/state/useToast';
@@ -10,7 +9,6 @@ import { estimatedSecondsRemaining } from '@/lib/credits';
 import { Button } from '@/components/ui/Button';
 import { InlineNotice } from '@/components/ui/Feedback';
 import { Modal } from '@/components/ui/Overlay';
-import { StudioPromptPanel } from '@/components/studio/StudioPromptPanel';
 import { StudioStage } from '@/components/studio/StudioStage';
 
 function useObjectUrl(file: File | null): string | null {
@@ -44,7 +42,6 @@ export function LiveStudio() {
     reconnect,
   } = useApp();
   const { pushToast } = useToast();
-  const { openNav, toggleNav } = useOutletContext<{ openNav: () => void; toggleNav?: () => void }>();
 
   const [prompt, setPrompt] = useState(studioDraft.prompt);
   const [promptError, setPromptError] = useState<string | null>(null);
@@ -121,7 +118,6 @@ export function LiveStudio() {
   const controlsBusy = status === 'requesting-camera' || status === 'connecting';
   const sessionActive = isLive || controlsBusy;
   const fatalError = snapshot.error?.fatal ? snapshot.error : null;
-  const updateError = snapshot.error && !snapshot.error.fatal ? snapshot.error : null;
   const credentialIssue = snapshot.error?.code.startsWith('credential-') ? snapshot.error : null;
 
   const usageRate = settings.usageRatePerMin;
@@ -256,60 +252,41 @@ export function LiveStudio() {
   };
 
   return (
-    <div className="grid min-h-[100dvh] grid-cols-1 gap-2 p-2 sm:gap-3 sm:p-3 lg:h-full lg:min-h-0 lg:grid-cols-[360px_minmax(0,1fr)] 2xl:grid-cols-[400px_minmax(0,1fr)]">
-      <div className="order-2 flex min-h-[460px] min-w-0 flex-col lg:order-1 lg:min-h-0">
-        <StudioPromptPanel
-          prompt={prompt}
-          onPromptChange={handlePromptChange}
-          promptError={promptError ?? undefined}
-          referenceFile={referenceFile}
-          referenceUrl={referenceUrl}
-          onReferenceChange={handleReferenceChange}
-          status={status}
-          disabled={controlsBusy}
-          live={isLive}
-          pending={snapshot.updatePending}
-          updateError={updateError}
-          isOnline={isOnline}
-          balanceCredits={wallet.balanceCredits}
-          estimatedRemainingSec={estimatedRemaining}
-          onStart={handleStart}
-          onApplyPrompt={handleApplyPrompt}
-          onOpenNotes={() => setNotesOpen(true)}
-          onOpenNav={toggleNav ?? openNav}
-        />
-      </div>
-
-      <div className="order-1 flex min-h-[220px] min-w-0 flex-col lg:order-2 lg:min-h-0">
-        <StudioStage
-          status={status}
-          remoteStream={remoteStream}
-          localStream={localStream}
-          referenceFile={referenceFile}
-          referenceUrl={referenceUrl}
-          error={fatalError}
-          mirror={settings.mirrorCamera}
-          isOnline={isOnline}
-          elapsedSec={elapsedSec}
-          balanceCredits={wallet.balanceCredits}
-          estimatedRemainingSec={estimatedRemaining}
-          camera={{
-            devices: camera.devices,
-            selectedId: camera.selectedId,
-            selectDevice: camera.selectDevice,
-            refresh: () => void refreshDevices(),
-            error: camera.error,
-          }}
-          showPip={showPip}
-          onTogglePip={() => setShowPip((current) => !current)}
-          onToggleMirror={() => updateSettings({ mirrorCamera: !settings.mirrorCamera })}
-          onStart={handleStart}
-          onStop={() => stop('user')}
-          onRetry={handleStart}
-          onOpenNotes={() => setNotesOpen(true)}
-          onReconnect={() => void reconnect()}
-        />
-      </div>
+    <div className="relative size-full min-h-[100dvh] overflow-hidden bg-[#060709] lg:h-full lg:min-h-0">
+      <StudioStage
+        status={status}
+        remoteStream={remoteStream}
+        localStream={localStream}
+        referenceFile={referenceFile}
+        referenceUrl={referenceUrl}
+        error={fatalError}
+        mirror={settings.mirrorCamera}
+        isOnline={isOnline}
+        elapsedSec={elapsedSec}
+        balanceCredits={wallet.balanceCredits}
+        estimatedRemainingSec={estimatedRemaining}
+        camera={{
+          devices: camera.devices,
+          selectedId: camera.selectedId,
+          selectDevice: camera.selectDevice,
+          refresh: () => void refreshDevices(),
+          error: camera.error,
+        }}
+        showPip={showPip}
+        onTogglePip={() => setShowPip((current) => !current)}
+        onToggleMirror={() => updateSettings({ mirrorCamera: !settings.mirrorCamera })}
+        onStart={handleStart}
+        onStop={() => stop('user')}
+        onRetry={handleStart}
+        onOpenNotes={() => setNotesOpen(true)}
+        onReconnect={() => void reconnect()}
+        prompt={prompt}
+        onPromptChange={handlePromptChange}
+        onApplyPrompt={handleApplyPrompt}
+        promptError={promptError ?? undefined}
+        onReferenceChange={handleReferenceChange}
+        updatePending={snapshot.updatePending}
+      />
 
       <Modal
         open={notesOpen}
