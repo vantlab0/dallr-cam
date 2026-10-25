@@ -37,9 +37,9 @@ export function SessionBar({
   const statusLabel: Record<LucySessionStatus, string> = {
     idle: lastRun ? 'Last session ended' : 'Ready to start',
     'requesting-camera': 'Waiting for camera permission…',
-    connecting: 'Connecting to Lucy 2.5…',
-    connected: 'Lucy 2.5 live',
-    reconnecting: 'Reconnecting to Lucy…',
+    connecting: 'Connecting to Dallr Cam 2.5…',
+    connected: 'Dallr Cam 2.5 live',
+    reconnecting: 'Reconnecting to Dallr Cam…',
     failed: error?.title ?? 'Session failed',
     stopped: 'Session ended',
   };
@@ -47,7 +47,7 @@ export function SessionBar({
   const subtitle = starting
     ? 'Camera access is requested only when a session starts.'
     : live
-      ? 'Camera → Decart over WebRTC · no wallet deductions'
+      ? 'Camera → Dallr Cam over WebRTC'
       : failed
         ? 'Review the error and retry when ready.'
         : isOnline
@@ -159,7 +159,7 @@ export function SessionBar({
 
         <div className="flex shrink-0 items-center justify-between gap-2 xl:justify-end">
           <Badge tone={isOnline ? 'neutral' : 'negative'} dot>
-            {isOnline ? `Lucy 2.5 · ${formatCredits(usageRatePerMin)} cr/min` : 'Offline'}
+            {isOnline ? `Dallr Cam 2.5 · ${formatCredits(usageRatePerMin)} cr/min` : 'Offline'}
           </Badge>
           {!isOnline ? <WifiOff className="size-3.5 text-negative/70" aria-hidden="true" /> : null}
         </div>

@@ -68,7 +68,7 @@ export function OutputPreview({
       <div className="flex h-9 items-center justify-between gap-2 border-b border-white/[0.055] px-3">
         <div className="flex items-center gap-2">
           <Sparkles className="size-3.5 text-accent/70" aria-hidden="true" />
-          <span className="text-[11px] font-medium text-white/65">Lucy output</span>
+          <span className="text-[11px] font-medium text-white/65">Dallr Cam output</span>
           <span className="hidden text-[9px] uppercase tracking-[0.12em] text-white/22 sm:inline">
             {modelSpec}
           </span>
@@ -86,7 +86,7 @@ export function OutputPreview({
               muted
               playsInline
               autoPlay
-              aria-label="Transformed Lucy output"
+              aria-label="Transformed Dallr Cam output"
               className="size-full object-cover"
             />
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.18),transparent_18%,transparent_78%,rgba(0,0,0,0.32))]" />
@@ -103,12 +103,12 @@ export function OutputPreview({
               </span>
             </div>
             <div className="absolute bottom-2 left-2.5 text-[8px] font-medium uppercase tracking-[0.14em] text-white/30">
-              Decart · not recorded
+              Dallr Cam · live stream
             </div>
             {reconnecting ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 bg-black/45 backdrop-blur-[2px]">
                 <span className="size-7 animate-spin rounded-full border border-white/15 border-t-warning/90" />
-                <p className="text-[11px] font-medium text-white/75">Reconnecting to Lucy…</p>
+                <p className="text-[11px] font-medium text-white/75">Reconnecting to Dallr Cam…</p>
                 <p className="text-[10px] text-white/40">The last frame stays visible meanwhile.</p>
               </div>
             ) : null}
@@ -122,7 +122,7 @@ export function OutputPreview({
               <>
                 <span className="size-9 animate-spin rounded-full border border-white/10 border-t-accent/80" />
                 <p className="mt-3 text-[12px] font-medium text-white/75">
-                  Connecting to Lucy 2.5…
+                  Connecting to Dallr Cam 2.5…
                 </p>
                 <p className="mt-1.5 max-w-[330px] text-[10.5px] leading-[1.55] text-white/35">
                   Requesting a short-lived token, then establishing the WebRTC stream.
@@ -163,8 +163,8 @@ export function OutputPreview({
                 </p>
                 <p className="mt-1.5 max-w-[350px] text-[10.5px] leading-[1.55] text-white/35">
                   {status === 'stopped'
-                    ? 'Start a new session to reconnect the camera and Lucy 2.5.'
-                    : 'Your transformed camera feed will appear here once the Lucy 2.5 session is connected.'}
+                    ? 'Start a new session to reconnect the camera and Dallr Cam 2.5.'
+                    : 'Your transformed camera feed will appear here once the Dallr Cam session is connected.'}
                 </p>
               </>
             )}

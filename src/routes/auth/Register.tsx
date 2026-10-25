@@ -60,8 +60,9 @@ export function Register() {
       pushToast({
         tone: 'success',
         title: 'Account created',
+        description: 'Welcome to Dallr Cam! Set up your camera to get started.',
       });
-      navigate('/studio', { replace: true });
+      navigate('/onboarding', { replace: true });
     } finally {
       setLoading(false);
     }

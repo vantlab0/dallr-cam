@@ -40,7 +40,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
             Dallr
           </p>
           <p className="mt-1 text-[8.5px] font-medium uppercase tracking-[0.24em] text-white/35">
-            Lucy 2.5 Studio
+            Dallr Cam Studio
           </p>
         </div>
       ) : null}

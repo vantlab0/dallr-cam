@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   Check,
   CircleDollarSign,
+  CreditCard,
   Info,
   Plus,
   Sparkles,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/state/useApp';
 import { useToast } from '@/state/useToast';
+import { openPaystackCheckout } from '@/services/billing/paystack';
 import {
   creditsToUsd,
   estimatedSecondsRemaining,
@@ -39,11 +41,12 @@ import { Progress, Stat } from '@/components/ui/Progress';
 import { cn } from '@/lib/utils';
 
 export function Wallet() {
-  const { wallet, transactions, settings, topUpWallet } = useApp();
+  const { wallet, transactions, settings, topUpWallet, user } = useApp();
   const { pushToast } = useToast();
   const [amountUsd, setAmountUsd] = useState<number>(MIN_TOPUP_USD);
   const [customInput, setCustomInput] = useState(String(MIN_TOPUP_USD));
   const [addCreditsModalOpen, setAddCreditsModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Keep invalid or negative input from producing negative credits in the preview.
   const safeAmountUsd = Number.isFinite(amountUsd) && amountUsd > 0 ? amountUsd : 0;
@@ -76,15 +79,42 @@ export function Wallet() {
     setAmountUsd(parsed);
   };
 
-  const handleCompleteTopUp = () => {
-    if (!amountValid) return;
-    topUpWallet(credits, safeAmountUsd, `Credit top-up · ${formatCredits(credits)} credits`);
-    setAddCreditsModalOpen(false);
-    pushToast({
-      tone: 'success',
-      title: 'Credits added successfully',
-      description: `Added ${formatCredits(credits)} credits ($${safeAmountUsd}) to your wallet balance.`,
-    });
+  const handleCompleteTopUp = async () => {
+    if (!amountValid || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await openPaystackCheckout({
+        email: user?.email || 'customer@dallr.studio',
+        amountNgn: ngn,
+        credits,
+        amountUsd: safeAmountUsd,
+        onSuccess: (ref) => {
+          topUpWallet(credits, safeAmountUsd, `Paystack Top-up · ${formatCredits(credits)} credits (${ref})`);
+          setAddCreditsModalOpen(false);
+          setIsProcessing(false);
+          pushToast({
+            tone: 'success',
+            title: 'Payment successful',
+            description: `Paystack confirmed. Added ${formatCredits(credits)} credits ($${safeAmountUsd}) to your wallet.`,
+          });
+        },
+        onCancel: () => {
+          setIsProcessing(false);
+          pushToast({
+            tone: 'info',
+            title: 'Payment cancelled',
+            description: 'The Paystack transaction was cancelled.',
+          });
+        },
+      });
+    } catch {
+      setIsProcessing(false);
+      pushToast({
+        tone: 'error',
+        title: 'Payment gateway error',
+        description: 'Failed to initiate Paystack checkout.',
+      });
+    }
   };
 
   return (
@@ -266,11 +296,12 @@ export function Wallet() {
             </Button>
             <Button
               variant="primary"
-              icon={Plus}
-              disabled={!amountValid}
+              icon={CreditCard}
+              disabled={!amountValid || isProcessing}
+              loading={isProcessing}
               onClick={handleCompleteTopUp}
             >
-              Add {formatCredits(credits)} credits ({formatUsd(safeAmountUsd)})
+              Pay with Paystack · {formatNgn(ngn)} ({formatCredits(credits)} cr)
             </Button>
           </div>
         }

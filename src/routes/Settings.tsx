@@ -39,6 +39,10 @@ import {
   DECART_API_KEY_STORAGE,
   DECART_TOKEN_ENDPOINT_STORAGE,
 } from '@/services/decart/credentials';
+import {
+  getPaystackPublicKey,
+  setPaystackPublicKey,
+} from '@/services/billing/paystack';
 
 type SettingsTab = 'general' | 'studio' | 'notifications' | 'data';
 
@@ -136,6 +140,7 @@ export function Settings() {
     } catch {}
     return '';
   });
+  const [paystackKeyInput, setPaystackKeyInput] = useState(() => getPaystackPublicKey());
 
   const saveDecartConfig = () => {
     try {
@@ -150,11 +155,12 @@ export function Settings() {
         } else {
           window.localStorage.removeItem(DECART_TOKEN_ENDPOINT_STORAGE);
         }
+        setPaystackPublicKey(paystackKeyInput);
       }
       pushToast({
         tone: 'success',
         title: 'Credentials saved',
-        description: 'Decart connection credentials saved to your browser.',
+        description: 'Dallr Cam connection and Paystack credentials saved to your browser.',
       });
     } catch {
       pushToast({
@@ -588,20 +594,20 @@ export function Settings() {
         <div className="space-y-4" role="tabpanel" aria-label="Data and credentials">
           <Card className="p-4 sm:p-5">
             <CardHeader
-              title="Decart credentials"
-              description="Configure your Decart API key or client token to connect live to Lucy 2.5."
+              title="Dallr Cam & Billing credentials"
+              description="Configure your API key or client token to connect live to Dallr Cam, and set your Paystack public key."
               icon={<ServerCog className="size-3.5" />}
             />
             <div className="mt-3 space-y-3">
               <div>
                 <label className="text-[11px] font-medium text-white/70">
-                  Decart API Key or Client Token
+                  Dallr Cam API Key or Client Token
                 </label>
                 <Input
                   type="password"
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder="Paste your Decart API Key (or client token)"
+                  placeholder="Paste your Dallr Cam API Key (or client token)"
                   className="mt-1 text-[11px]"
                 />
               </div>
@@ -617,21 +623,38 @@ export function Settings() {
                   className="mt-1 text-[11px]"
                 />
               </div>
+              <div>
+                <label className="text-[11px] font-medium text-white/70">
+                  Paystack Public Key (for credit top-ups)
+                </label>
+                <Input
+                  type="text"
+                  value={paystackKeyInput}
+                  onChange={(e) => setPaystackKeyInput(e.target.value)}
+                  placeholder="pk_live_... or pk_test_..."
+                  className="mt-1 text-[11px] font-mono"
+                />
+                <p className="mt-1 text-[10px] text-white/30">
+                  Used by the top-up checkout modal to process card and bank payments in NGN.
+                </p>
+              </div>
               <div className="flex gap-2 pt-1">
                 <Button size="sm" variant="primary" onClick={saveDecartConfig}>
                   Save credentials
                 </Button>
-                {(apiKeyInput || endpointInput) && (
+                {(apiKeyInput || endpointInput || paystackKeyInput) && (
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => {
                       setApiKeyInput('');
                       setEndpointInput('');
+                      setPaystackKeyInput('');
                       if (typeof window !== 'undefined') {
                         window.localStorage.removeItem(DECART_API_KEY_STORAGE);
                         window.localStorage.removeItem(DECART_TOKEN_ENDPOINT_STORAGE);
                       }
+                      setPaystackPublicKey('');
                       pushToast({
                         tone: 'info',
                         title: 'Credentials cleared',

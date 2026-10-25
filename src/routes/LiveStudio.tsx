@@ -50,10 +50,18 @@ export function LiveStudio() {
   const appliedPromptRef = useRef('');
   const appliedRevision = useRef(studioDraft.revision);
   const sessionCreditsUsedRef = useRef(0);
+  const [firstFrameAt, setFirstFrameAt] = useState<number | null>(null);
+
+  const handleFirstFrame = useCallback(() => {
+    setFirstFrameAt((prev) => prev ?? Date.now());
+  }, []);
 
   const handleEnded = useCallback(
     (summary: LucySessionSummary) => {
       const creditsUsed = sessionCreditsUsedRef.current;
+      const actualDuration = firstFrameAt
+        ? Math.max(1, Math.round((Date.now() - firstFrameAt) / 1_000))
+        : 0;
       const title = summary.referenceName
         ? `Reference session · ${summary.referenceName}`
         : 'Live session';
@@ -62,7 +70,7 @@ export function LiveStudio() {
         title,
         presetId: null,
         prompt: summary.prompt,
-        durationSec: summary.durationSec,
+        durationSec: actualDuration,
         creditsUsed,
         cameraLabel: summary.cameraLabel,
         referenceName: summary.referenceName,
@@ -71,26 +79,29 @@ export function LiveStudio() {
       });
 
       if (creditsUsed > 0) {
-        recordUsageTransaction(creditsUsed, summary.durationSec, summary.referenceName ?? undefined);
+        recordUsageTransaction(creditsUsed, actualDuration, summary.referenceName ?? undefined);
       }
 
-      setElapsedSec(summary.durationSec);
+      setElapsedSec(actualDuration);
 
       if (summary.status === 'failed') {
         pushToast({
           tone: 'error',
           title: 'Session stopped',
-          description: `The Lucy session stopped. ${creditsUsed} credits used for ${summary.durationSec}s rendering.`,
+          description:
+            creditsUsed > 0
+              ? `The Dallr Cam session stopped. ${creditsUsed} credits used for ${actualDuration}s rendering.`
+              : 'The Dallr Cam session stopped before streaming video. No credits were deducted.',
         });
       } else {
         pushToast({
           tone: 'success',
           title: 'Session ended',
-          description: `${summary.durationSec}s rendered (${creditsUsed} credits deducted).`,
+          description: `${actualDuration}s rendered (${creditsUsed} credits deducted).`,
         });
       }
     },
-    [addSessionRecord, recordUsageTransaction, pushToast],
+    [firstFrameAt, addSessionRecord, recordUsageTransaction, pushToast],
   );
 
   const {
@@ -129,13 +140,17 @@ export function LiveStudio() {
     return () => window.clearTimeout(timer);
   }, [prompt, setStudioDraft]);
 
-  // Wire 4 credits per second deduction during live rendering
+  // Only start counting seconds and deducting credits after first frame is received from Decart
   useEffect(() => {
-    if (status !== 'connected' || snapshot.startedAt === null) return;
-    const startedAt = snapshot.startedAt;
+    if (status !== 'connected' || firstFrameAt === null) {
+      if (status !== 'connected') {
+        setFirstFrameAt(null);
+      }
+      return;
+    }
 
     const interval = window.setInterval(() => {
-      const currentElapsed = Math.floor((Date.now() - startedAt) / 1_000);
+      const currentElapsed = Math.floor((Date.now() - firstFrameAt) / 1_000);
       setElapsedSec(currentElapsed);
 
       // Deduct 4 credits for every second rendered
@@ -153,7 +168,7 @@ export function LiveStudio() {
     }, 1_000);
 
     return () => window.clearInterval(interval);
-  }, [snapshot.startedAt, status, deductCredits, stop, pushToast]);
+  }, [firstFrameAt, status, deductCredits, stop, pushToast]);
 
   useEffect(() => {
     if (!isLive) return;
@@ -189,7 +204,7 @@ export function LiveStudio() {
       pushToast({
         tone: 'error',
         title: 'You are offline',
-        description: 'Reconnect before starting a Lucy session.',
+        description: 'Reconnect before starting a Dallr Cam session.',
       });
       return;
     }
@@ -204,6 +219,7 @@ export function LiveStudio() {
     }
 
     sessionCreditsUsedRef.current = 0;
+    setFirstFrameAt(null);
     setPromptError(null);
     setElapsedSec(0);
     appliedPromptRef.current = prompt.trim();
@@ -277,6 +293,7 @@ export function LiveStudio() {
         promptError={promptError ?? undefined}
         onReferenceChange={handleReferenceChange}
         updatePending={snapshot.updatePending}
+        onFirstFrame={handleFirstFrame}
       />
     </div>
   );

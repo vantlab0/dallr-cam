@@ -125,7 +125,7 @@ export function StudioPromptPanel({
   const submitTitle = !isOnline
     ? 'Reconnect before starting a session'
     : busy
-      ? 'Connecting to Lucy…'
+      ? 'Connecting to Dallr Cam…'
       : live
         ? 'Apply this prompt to the live session'
         : 'Start a session with this prompt';
@@ -168,7 +168,7 @@ export function StudioPromptPanel({
         <div className="flex shrink-0 items-center gap-1.5">
           <span
             className="inline-flex items-center gap-1 text-[10px] text-white/30"
-            title="Lucy 2.5 · 1280 × 720 · 30 fps"
+            title="Dallr Cam 2.5 · 1280 × 720 · 30 fps"
           >
             <Zap className="size-3" aria-hidden="true" />
             30 fps
@@ -266,7 +266,7 @@ export function StudioPromptPanel({
               <ImagePlus className="size-3.5 text-accent" aria-hidden="true" />
               Reference Image
             </span>
-            <span className="text-[10px] text-white/35">Decart Lucy 2.5 Target</span>
+            <span className="text-[10px] text-white/35">Dallr Cam Target</span>
           </div>
 
           {referenceFile ? (
@@ -349,7 +349,7 @@ export function StudioPromptPanel({
             {showPending ? (
               <>
                 <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                <span>{busy ? 'Connecting to Lucy…' : 'Applying…'}</span>
+                <span>{busy ? 'Connecting to Dallr Cam…' : 'Applying…'}</span>
               </>
             ) : (
               <>
@@ -370,7 +370,7 @@ export function StudioPromptPanel({
               aria-hidden="true"
             />
             <span className="truncate">
-              {live ? (pending ? 'Applying to Lucy…' : 'Live · changes apply automatically') : 'Autosaved locally'}
+              {live ? (pending ? 'Applying to Dallr Cam…' : 'Live · changes apply automatically') : 'Autosaved locally'}
             </span>
           </span>
           <Link

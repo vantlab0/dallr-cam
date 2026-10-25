@@ -16,7 +16,7 @@ export function BootScreen() {
         <LogoMark className="size-11 rounded-[14px]" />
         <p className="mt-5 font-display text-[26px] leading-none text-white/90">Dallr</p>
         <p className="mt-2 text-[9px] font-semibold uppercase tracking-[0.26em] text-white/28">
-          Lucy 2.5 Studio
+          Dallr Cam Studio
         </p>
         <div className="mt-7 h-px w-32 overflow-hidden bg-white/[0.07]">
           <div className="h-full w-1/3 animate-[shimmer_1.5s_ease-in-out_infinite] bg-[linear-gradient(90deg,transparent,rgb(var(--accent)/0.7),transparent)] bg-[length:200%_100%]" />

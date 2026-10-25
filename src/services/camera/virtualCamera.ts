@@ -170,7 +170,7 @@ export async function installObsVirtualCam(
     onProgress({
       percent: 92,
       stage: 'Activating camera pipeline',
-      detail: 'Connecting Decart Lucy 2.5 720p 30fps stream to OBS Virtual Camera source...',
+      detail: 'Connecting Dallr Cam 2.5 720p 30fps stream to OBS Virtual Camera source...',
     });
     await new Promise((resolve) => setTimeout(resolve, 700));
 

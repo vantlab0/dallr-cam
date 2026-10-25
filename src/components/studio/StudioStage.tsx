@@ -162,7 +162,7 @@ function StagePlaceholder({
   return (
     <div
       role="region"
-      aria-label="Lucy standby stage"
+      aria-label="Dallr Cam standby stage"
       className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center"
     >
       {error ? (
@@ -184,7 +184,7 @@ function StagePlaceholder({
             <Sparkles className="size-5" aria-hidden="true" />
           </span>
           <p className="mt-3 text-[14px] font-medium text-white/85">
-            {status === 'stopped' ? 'Session ended' : 'Decart Lucy 2.5'}
+            {status === 'stopped' ? 'Session ended' : 'Dallr Cam 2.5'}
           </p>
           <p className="mt-1 max-w-[360px] text-[11px] leading-[1.55] text-white/35">
             {!isOnline
@@ -223,6 +223,7 @@ export function StudioStage({
   promptError,
   onReferenceChange,
   updatePending,
+  onFirstFrame,
 }: {
   status: LucySessionStatus;
   remoteStream: MediaStream | null;
@@ -255,6 +256,7 @@ export function StudioStage({
   promptError?: string;
   onReferenceChange: (file: File | null) => void;
   updatePending: boolean;
+  onFirstFrame?: () => void;
 }) {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [virtualCamActive, setVirtualCamActive] = useState(false);
@@ -430,14 +432,17 @@ export function StudioStage({
           />
         ) : null}
 
-        {/* ── Layer 2: Decart Lucy 2.5 Realtime Output ── */}
+        {/* ── Layer 2: Dallr Cam 2.5 Realtime Output ── */}
         {remoteStream ? (
           <div className="absolute inset-0 z-10 overflow-hidden">
             <StreamVideo
               id="video-output"
               stream={remoteStream}
-              label="Decart Lucy 2.5 Live Output"
-              onFramesReady={() => setRemoteFramesReady(true)}
+              label="Dallr Cam 2.5 Live Output"
+              onFramesReady={() => {
+                setRemoteFramesReady(true);
+                onFirstFrame?.();
+              }}
               onPipChange={setVirtualCamActive}
               className={cn(
                 'size-full object-cover transition-opacity duration-300',
@@ -448,7 +453,7 @@ export function StudioStage({
               <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/45 backdrop-blur-[2px]">
                 <div className="flex items-center gap-2.5 rounded-full border border-white/15 bg-black/80 px-4 py-2 text-[12px] font-medium text-white shadow-2xl backdrop-blur-md">
                   <LoaderCircle className="size-4 animate-spin text-accent" />
-                  <span>Receiving Lucy 2.5 video frames…</span>
+                  <span>Receiving Dallr Cam frames…</span>
                 </div>
               </div>
             ) : null}
@@ -467,16 +472,16 @@ export function StudioStage({
             <p className="text-[13px] font-medium text-white/90">
               {status === 'requesting-camera'
                 ? 'Requesting camera stream…'
-                : 'Connecting to Decart Lucy 2.5…'}
+                : 'Connecting to Dallr Cam…'}
             </p>
             <p className="max-w-[340px] text-[10.5px] leading-relaxed text-white/45">
-              Opening 720p 30fps LiveKit WebRTC pipe with metered 4 credits/sec billing.
+              Opening 720p 30fps WebRTC pipe with metered 4 credits/sec billing.
             </p>
           </div>
         ) : status === 'reconnecting' ? (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2.5 bg-black/55 px-6 text-center backdrop-blur-sm">
             <LoaderCircle className="size-8 animate-spin text-amber-400" aria-hidden="true" />
-            <p className="text-[13px] font-medium text-white/90">Reconnecting to Decart…</p>
+            <p className="text-[13px] font-medium text-white/90">Reconnecting to Dallr Cam…</p>
             <p className="text-[10px] text-white/40">Holding last rendered frame.</p>
           </div>
         ) : null}
@@ -499,7 +504,7 @@ export function StudioStage({
             <span>{sessionAction.label}</span>
             {live ? (
               <span className="ml-1 rounded-full bg-black/30 px-2 py-0.5 font-mono text-[10px] tabular-nums text-white/90">
-                {formatClock(elapsedSec)}
+                {remoteFramesReady ? formatClock(elapsedSec) : '00:00'}
               </span>
             ) : null}
           </button>
@@ -641,10 +646,10 @@ export function StudioStage({
             <span>{formatCredits(balanceCredits)} cr</span>
           </Link>
 
-          {/* Lucy 2.5 Resolution Pill */}
+          {/* Dallr Cam 2.5 Resolution Pill */}
           <span className="hidden sm:inline-flex h-8 items-center gap-1.5 rounded-full border border-white/10 bg-black/45 px-3 text-[10.5px] font-medium text-white/70 backdrop-blur-xl">
             <Sparkles className="size-3 text-accent" />
-            <span>Lucy 2.5 · 720p</span>
+            <span>Dallr Cam 2.5 · 720p</span>
           </span>
         </div>
       </div>
@@ -793,8 +798,8 @@ export function StudioStage({
       <Modal
         open={virtualCamModalOpen}
         onClose={() => setVirtualCamModalOpen(false)}
-        title="Broadcast Decart Output to External Apps"
-        description="Stream the transformed Lucy 2.5 video to WhatsApp, Zoom, OBS Studio, and Meet."
+        title="Broadcast Dallr Cam Output to External Apps"
+        description="Stream the transformed Dallr Cam video to WhatsApp, Zoom, OBS Studio, and Meet."
         size="md"
         footer={
           <div className="flex w-full items-center justify-between">
@@ -823,7 +828,7 @@ export function StudioStage({
               </span>
               <div>
                 <p className="text-[12px] font-semibold text-emerald-300">
-                  {remoteStream ? 'Decart 720p 30fps Output Ready' : 'Decart Session Standby'}
+                  {remoteStream ? 'Dallr Cam 720p 30fps Output Ready' : 'Dallr Cam Session Standby'}
                 </p>
                 <p className="text-[10px] text-emerald-400/75">
                   {remoteStream
@@ -973,7 +978,7 @@ export function StudioStage({
             </div>
             <div className="flex items-center justify-between text-white/60">
               <span>Broadcast Resolution</span>
-              <span className="font-medium text-emerald-400">Decart Lucy 2.5 · 720p 30fps</span>
+              <span className="font-medium text-emerald-400">Dallr Cam 2.5 · 720p 30fps</span>
             </div>
           </div>
         </div>

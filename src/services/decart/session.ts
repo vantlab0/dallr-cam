@@ -17,7 +17,7 @@ import {
 } from './credentials';
 
 export const LUCY_MODEL_ID = 'lucy-2.5' as const;
-export const LUCY_MODEL_LABEL = 'Lucy 2.5';
+export const LUCY_MODEL_LABEL = 'Dallr Cam 2.5';
 export const LUCY_MODEL_SPEC = {
   width: 1280,
   height: 720,
@@ -424,7 +424,7 @@ export function mapSessionEndReason(reason: string): LucySessionError {
         code: 'session-limit',
         title: 'Session limit reached',
         message:
-          'Another Lucy session is already using this Decart credential. Close it or wait for it to finish.',
+          'Another Dallr Cam session is already in progress. Close it or wait for it to finish.',
         fatal: true,
       };
     default:
@@ -475,7 +475,7 @@ export function mapSdkError(error: unknown): LucySessionError {
         code: 'connect-failed',
         title: 'WebRTC unavailable',
         message:
-          'This webview could not initialize the WebRTC components Lucy needs. Update the desktop app or try a different runtime.',
+          'This webview could not initialize the WebRTC components Dallr Cam needs. Update the desktop app or try a different runtime.',
         fatal: true,
       };
     case 'WEBRTC_TIMEOUT_ERROR':
@@ -483,25 +483,25 @@ export function mapSdkError(error: unknown): LucySessionError {
         code: 'connect-timeout',
         title: 'Connection timed out',
         message:
-          'The Lucy session did not connect in time. Check your network, firewall or VPN, then retry.',
+          'The Dallr Cam session did not connect in time. Check your network, firewall or VPN, then retry.',
         fatal: true,
       };
     case 'WEBRTC_SERVER_ERROR':
       if (technical?.toLowerCase().includes('video_input_timeout')) {
         return {
           code: 'camera-unavailable',
-          title: 'Decart camera input timed out',
+          title: 'Camera input timed out',
           message:
-            'Decart connected, but did not receive video frames from your camera in time (video_input_timeout).',
+            'Dallr Cam connected, but did not receive video frames from your camera in time (video_input_timeout).',
           hint: 'Check that your webcam privacy shutter is open, close any apps locking the camera (such as OBS, Zoom, or Teams), or select a different camera in the dropdown.',
           fatal: true,
         };
       }
       return {
         code: 'server-error',
-        title: 'Lucy session ended by provider',
-        message: technical || 'Decart encountered an error with the session.',
-        hint: 'Check that your prompt or reference image complies with Decart usage policies.',
+        title: 'Dallr Cam session ended by provider',
+        message: technical || 'Dallr Cam encountered an error with the session.',
+        hint: 'Check that your prompt or reference image complies with usage policies.',
         fatal: true,
       };
     case 'WEBRTC_WEBSOCKET_ERROR':
@@ -509,7 +509,7 @@ export function mapSdkError(error: unknown): LucySessionError {
     case 'WEBRTC_SIGNALING_ERROR':
       return {
         code: 'connect-failed',
-        title: 'Could not reach Lucy',
+        title: 'Could not reach Dallr Cam',
         message:
           'The real-time connection failed. Check your network and any firewall or VPN, then retry.',
         hint: technical,
@@ -518,9 +518,9 @@ export function mapSdkError(error: unknown): LucySessionError {
     case 'MODEL_NOT_FOUND':
       return {
         code: 'connect-failed',
-        title: 'Lucy 2.5 unavailable',
+        title: 'Dallr Cam 2.5 unavailable',
         message:
-          'The token service or Decart account does not have access to the Lucy 2.5 model.',
+          'The token service or account does not have access to the Dallr Cam 2.5 model.',
         fatal: true,
       };
     case 'INVALID_INPUT':
@@ -529,15 +529,15 @@ export function mapSdkError(error: unknown): LucySessionError {
         code: 'connect-failed',
         title: 'Session settings rejected',
         message:
-          'Decart rejected the session settings. Check the prompt and reference image, then retry.',
+          'Rejected session settings. Check the prompt and reference image, then retry.',
         fatal: true,
       };
     default:
       return {
         code: 'connect-failed',
         title: 'Session could not start',
-        message: technical || 'The Lucy session could not be established. Try again.',
-        hint: technical ? 'Check console logs or Decart account for details.' : undefined,
+        message: technical || 'The Dallr Cam session could not be established. Try again.',
+        hint: technical ? 'Check console logs or account for details.' : undefined,
         fatal: true,
       };
   }

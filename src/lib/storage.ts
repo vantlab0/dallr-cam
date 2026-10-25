@@ -1,7 +1,6 @@
 import {
   createDefaultSessions,
   createDefaultTransactions,
-  createDefaultUser,
   createDefaultWallet,
   DEFAULT_SETTINGS,
   DEFAULT_STUDIO_DRAFT,
@@ -13,7 +12,7 @@ const STORAGE_KEY = 'dallr:state:v3';
 export function createDefaultState(): PersistedState {
   return {
     version: 3,
-    user: createDefaultUser(),
+    user: null,
     wallet: createDefaultWallet(),
     settings: structuredClone(DEFAULT_SETTINGS),
     transactions: createDefaultTransactions(),

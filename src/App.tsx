@@ -14,6 +14,7 @@ import { Profile } from '@/routes/Profile';
 import { Settings } from '@/routes/Settings';
 import { SignIn } from '@/routes/auth/SignIn';
 import { Register } from '@/routes/auth/Register';
+import { Onboarding } from '@/routes/Onboarding';
 import { NotFound } from '@/routes/NotFound';
 
 const titles: Record<string, string> = {
@@ -24,7 +25,10 @@ const titles: Record<string, string> = {
   '/profile': 'Profile',
   '/settings': 'Settings',
   '/sign-in': 'Sign in',
+  '/login': 'Sign in',
   '/register': 'Create account',
+  '/signup': 'Create account',
+  '/onboarding': 'Hardware Setup',
 };
 
 function AppFrame() {
@@ -33,7 +37,7 @@ function AppFrame() {
 
   useEffect(() => {
     const page = titles[location.pathname];
-    document.title = page ? `${page} · Dallr Studio` : 'Dallr Studio';
+    document.title = page ? `${page} · Dallr Cam Studio` : 'Dallr Cam Studio';
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [location.pathname]);
 
@@ -41,8 +45,11 @@ function AppFrame() {
     <MotionConfig reducedMotion={settings.reduceMotion ? 'always' : 'user'}>
       <Routes>
         <Route path="/sign-in" element={<SignIn />} />
+        <Route path="/login" element={<Navigate to="/sign-in" replace />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/signup" element={<Navigate to="/register" replace />} />
         <Route element={<ProtectedRoute />}>
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route element={<AppShell />}>
             <Route path="/" element={<Navigate to="/studio" replace />} />
             <Route path="/studio" element={<LiveStudio />} />

@@ -71,7 +71,7 @@ export function PromptEditor({
           <p id="transform-prompt-hint" className="mt-1.5 text-[10.5px] leading-[1.5] text-white/30">
             {live ? (
               <>
-                Changes are sent to Lucy while the session is live.
+                Changes are sent to Dallr Cam while the session is live.
                 {presetName ? (
                   <>
                     {' '}
@@ -96,7 +96,7 @@ export function PromptEditor({
           {pending ? (
             <>
               <LoaderCircle className="size-2.5 animate-spin text-accent/70" aria-hidden="true" />
-              Applying to Lucy…
+              Applying to Dallr Cam…
             </>
           ) : (
             <>
