@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
+    base: './',
     plugins: [react(), decartTokenPlugin({ apiKey: env.DECART_API_KEY })],
     resolve: {
       alias: {

@@ -37,6 +37,10 @@ import { Input, Switch } from '@/components/ui/Form';
 import { InlineNotice } from '@/components/ui/Feedback';
 import { Modal } from '@/components/ui/Overlay';
 import { cn } from '@/lib/utils';
+import {
+  DECART_API_KEY_STORAGE,
+  DECART_TOKEN_ENDPOINT_STORAGE,
+} from '@/services/decart/credentials';
 
 type SettingsTab = 'general' | 'studio' | 'notifications' | 'data';
 
@@ -117,6 +121,51 @@ export function Settings() {
   const [rateInput, setRateInput] = useState(String(settings.usageRatePerMin));
   const [resetOpen, setResetOpen] = useState(false);
   const runningInDesktop = isDesktopRuntime();
+
+  const [apiKeyInput, setApiKeyInput] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        return window.localStorage.getItem(DECART_API_KEY_STORAGE) || '';
+      }
+    } catch {}
+    return '';
+  });
+  const [endpointInput, setEndpointInput] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        return window.localStorage.getItem(DECART_TOKEN_ENDPOINT_STORAGE) || '';
+      }
+    } catch {}
+    return '';
+  });
+
+  const saveDecartConfig = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        if (apiKeyInput.trim()) {
+          window.localStorage.setItem(DECART_API_KEY_STORAGE, apiKeyInput.trim());
+        } else {
+          window.localStorage.removeItem(DECART_API_KEY_STORAGE);
+        }
+        if (endpointInput.trim()) {
+          window.localStorage.setItem(DECART_TOKEN_ENDPOINT_STORAGE, endpointInput.trim());
+        } else {
+          window.localStorage.removeItem(DECART_TOKEN_ENDPOINT_STORAGE);
+        }
+      }
+      pushToast({
+        tone: 'success',
+        title: 'Credentials saved',
+        description: 'Decart connection credentials saved to your browser.',
+      });
+    } catch {
+      pushToast({
+        tone: 'error',
+        title: 'Storage error',
+        description: 'Failed to save credentials to browser storage.',
+      });
+    }
+  };
 
   useEffect(() => {
     setRateInput(String(settings.usageRatePerMin));
@@ -641,6 +690,72 @@ export function Settings() {
               </div>
             </Card>
           </div>
+
+          <Card className="p-4 sm:p-5">
+            <CardHeader
+              title="Decart credentials (Production & Web)"
+              description="Configure your Decart API key or client token to connect live to Lucy 2.5."
+              icon={<ServerCog className="size-3.5" />}
+            />
+            <div className="mt-3 space-y-3">
+              <div>
+                <label className="text-[11px] font-medium text-white/70">
+                  Decart API Key or Client Token
+                </label>
+                <p className="text-[10px] text-white/35">
+                  Saved only in your local browser profile. Used to start live Lucy 2.5 sessions.
+                </p>
+                <Input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="Paste your Decart API Key (or client token)"
+                  className="mt-1 text-[11px]"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-white/70">
+                  Custom Token Minting Endpoint (optional)
+                </label>
+                <p className="text-[10px] text-white/35">
+                  Custom server endpoint if your backend generates short-lived Decart tokens.
+                </p>
+                <Input
+                  type="url"
+                  value={endpointInput}
+                  onChange={(e) => setEndpointInput(e.target.value)}
+                  placeholder="https://your-service.com/api/realtime-token"
+                  className="mt-1 text-[11px]"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" variant="primary" onClick={saveDecartConfig}>
+                  Save credentials
+                </Button>
+                {(apiKeyInput || endpointInput) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setApiKeyInput('');
+                      setEndpointInput('');
+                      if (typeof window !== 'undefined') {
+                        window.localStorage.removeItem(DECART_API_KEY_STORAGE);
+                        window.localStorage.removeItem(DECART_TOKEN_ENDPOINT_STORAGE);
+                      }
+                      pushToast({
+                        tone: 'info',
+                        title: 'Credentials cleared',
+                        description: 'Removed saved credentials from browser storage.',
+                      });
+                    }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
 
           <Card className="p-4 sm:p-5">
             <CardHeader

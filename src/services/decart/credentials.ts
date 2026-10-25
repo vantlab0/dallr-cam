@@ -39,12 +39,21 @@ export interface SessionCredentialProvider {
   getToken: () => Promise<string>;
 }
 
+export const DECART_API_KEY_STORAGE = 'dallr:decart_api_key';
+export const DECART_TOKEN_ENDPOINT_STORAGE = 'dallr:decart_token_endpoint';
+
 export function resolveTokenEndpoint(
   configured: string | undefined,
   isDevelopment: boolean,
 ): string | null {
   const trimmed = configured?.trim();
   if (trimmed) return trimmed;
+  try {
+    if (typeof window !== 'undefined') {
+      const custom = window.localStorage.getItem(DECART_TOKEN_ENDPOINT_STORAGE);
+      if (custom?.trim()) return custom.trim();
+    }
+  } catch {}
   return isDevelopment ? DEFAULT_DEV_ENDPOINT : null;
 }
 
@@ -74,14 +83,36 @@ export function createTokenEndpointProvider(
     import.meta.env.VITE_DECART_TOKEN_ENDPOINT,
     import.meta.env.DEV,
   ),
-  options: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+  options: { fetchImpl?: typeof fetch; timeoutMs?: number; directKey?: string | null } = {},
 ): SessionCredentialProvider {
   const fetchImpl = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
+  const getDirectApiKey = (): string | null => {
+    if (options.directKey) return options.directKey;
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = window.localStorage.getItem(DECART_API_KEY_STORAGE)?.trim();
+        if (stored) return stored;
+      }
+    } catch {}
+    if (
+      typeof import.meta.env.VITE_DECART_API_KEY === 'string' &&
+      import.meta.env.VITE_DECART_API_KEY.trim()
+    ) {
+      return import.meta.env.VITE_DECART_API_KEY.trim();
+    }
+    return null;
+  };
+
   return {
-    endpoint,
+    get endpoint(): string | null {
+      return endpoint ?? (getDirectApiKey() ? 'direct-api-key' : null);
+    },
     async getToken(): Promise<string> {
+      const directKey = getDirectApiKey();
+      if (directKey) return directKey;
+
       if (!endpoint) {
         throw new SessionCredentialError(
           'not-configured',
