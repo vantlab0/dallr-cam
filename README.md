@@ -128,33 +128,50 @@ The frontend calls this endpoint through `apiKeyProvider`, so the SDK can fetch 
 the initial connect, uploads and reconnects. Restart the dev server after changing
 `DECART_API_KEY`.
 
-### Hosted backend / packaged builds
+### Production Token Service
 
-A packaged Tauri build does not run the Vite middleware. Set a public endpoint at build time:
+A packaged Tauri build (.exe / .dmg) does not run the local Vite middleware. In production, the client calls a hosted token endpoint to fetch short-lived Decart client tokens.
 
-```dotenv
-VITE_DECART_TOKEN_ENDPOINT=https://your-service.example.com/decart/session-token
-```
+#### Setting up the token service
 
-The endpoint must accept `POST`, allow the app origin (CORS), and return JSON shaped like:
+1. **Standalone Node Server**: A production server implementation is provided in `server/index.mjs`:
+   ```bash
+   DECART_API_KEY=your_permanent_key PORT=3001 node server/index.mjs
+   ```
+2. **Serverless Deployment**: Cloudflare Worker and Supabase Edge Function templates are located in `server/worker.js`.
+3. The service accepts `POST`, enforces rate limiting, handles CORS for Tauri/web origins, reads the permanent `DECART_API_KEY` from a server secret, mints short-lived tokens (≤ 300s restricted to `lucy-2.5`), and returns `{ "apiKey": "<short-lived-token>" }`.
 
-```json
-{
-  "apiKey": "<short-lived Decart client token>"
-}
-```
+`VITE_DECART_TOKEN_ENDPOINT` is set at build time to point to this token service. Never put `DECART_API_KEY` in the client bundle or binary.
 
-Recommended production controls:
+### GitHub Secrets for Production Release Workflow
 
-- keep the permanent Decart key in a server-side secret store;
-- authenticate the Dallr user before minting a token;
-- restrict `allowedModels` to `lucy-2.5` and set a short `expiresIn`;
-- restrict `allowedOrigins` to the packaged app and web origins;
-- rate-limit per user/IP and log failures without logging tokens;
-- add the hosted endpoint to the Tauri `connect-src` CSP.
+When triggering the release action in `.github/workflows/release.yml`, configure the following GitHub Repository Secrets:
 
-`VITE_DECART_TOKEN_ENDPOINT` is public configuration, not a secret. Never prefix the Decart API key
-with `VITE_`.
+- `VITE_DECART_TOKEN_ENDPOINT` — Public HTTPS URL of your hosted Decart token service
+- `VITE_SUPABASE_URL` — Production Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` — Production Supabase publishable/anon key
+- `VITE_PAYSTACK_PUBLIC_KEY` — Production Paystack public key (`pk_live_...` or `pk_test_...`)
+
+When these environment variables are injected at build time, the packaged app enforces real Supabase authentication, real Paystack payment checkout, and connects real Decart Lucy 2.5 sessions via the token service.
+
+### Testing Desktop Builds End-to-End
+
+To test a production desktop build locally:
+
+1. **Start the Token Service**: Run `node server/index.mjs` with `DECART_API_KEY` set.
+2. **Build the Desktop App**:
+   ```bash
+   export VITE_DECART_TOKEN_ENDPOINT=http://localhost:3001/decart/session-token
+   export VITE_SUPABASE_URL=https://your-project.supabase.co
+   export VITE_SUPABASE_ANON_KEY=your_anon_key
+   export VITE_PAYSTACK_PUBLIC_KEY=pk_test_12345
+   pnpm tauri build
+   ```
+3. **Run the Installer**: Install and launch the produced `.exe` (Windows) or `.dmg` (macOS).
+4. **End-to-End Verification**:
+   - **Auth**: Sign in with a real Supabase account (or register a new user). Verification fails on invalid credentials without demo fallbacks.
+   - **Payments**: Navigate to Wallet, select top-up, and complete checkout via the real Paystack inline checkout modal.
+   - **Lucy 2.5 Session**: Enter a prompt, select camera, and click **Start session**. Confirm the app fetches a short-lived token from `VITE_DECART_TOKEN_ENDPOINT` and starts the Decart WebRTC stream.
 
 ### What happens on Start
 

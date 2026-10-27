@@ -52,12 +52,21 @@ jobs:
         run: pnpm test
 
       - name: Build frontend
+        env:
+          VITE_DECART_TOKEN_ENDPOINT: ${{ secrets.VITE_DECART_TOKEN_ENDPOINT }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_PAYSTACK_PUBLIC_KEY: ${{ secrets.VITE_PAYSTACK_PUBLIC_KEY }}
         run: pnpm build
 
       - name: Build Tauri Desktop Package
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_DECART_TOKEN_ENDPOINT: ${{ secrets.VITE_DECART_TOKEN_ENDPOINT }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_PAYSTACK_PUBLIC_KEY: ${{ secrets.VITE_PAYSTACK_PUBLIC_KEY }}
         with:
           tagName: v__VERSION__
           releaseName: 'Dallr Studio v__VERSION__'

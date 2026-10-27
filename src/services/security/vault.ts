@@ -68,6 +68,19 @@ let cachedSupabasePublishable: string | null = null;
 let cachedSupabaseSecret: string | null = null;
 let cachedSupabaseJwks: string | null = null;
 
+export function isPaystackConfigured(): boolean {
+  const envVal = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+  return Boolean(envVal && typeof envVal === 'string' && envVal.trim().length > 0);
+}
+
+export function isSupabaseConfigured(): boolean {
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const key =
+    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined);
+  return Boolean(url && url.trim() && key && key.trim());
+}
+
 export function getPaystackPublicKey(): string {
   if (cachedPaystackPublic) return cachedPaystackPublic;
   const envVal = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;

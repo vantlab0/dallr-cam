@@ -7,6 +7,7 @@ import {
   signUpWithSupabase,
   signOutFromSupabase,
 } from '@/services/supabase/client';
+import { isSupabaseConfigured } from '@/services/security/vault';
 import {
   clearPersistedState,
   createDefaultState,
@@ -114,11 +115,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const sbUser = await signInWithSupabase({ email, password });
         setUser(sbUser);
       } catch (err: unknown) {
-        // Fallback for offline testing if needed, or rethrow
-        const message = err instanceof Error ? err.message : String(err);
-        if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network')) {
-          setUser(userFromEmail(email));
-          return;
+        if (!isSupabaseConfigured()) {
+          const message = err instanceof Error ? err.message : String(err);
+          if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network')) {
+            setUser(userFromEmail(email));
+            return;
+          }
         }
         throw err;
       }
@@ -132,16 +134,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { user: sbUser } = await signUpWithSupabase({ email, password, name });
         setUser(sbUser);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network')) {
-          setUser({
-            ...createDefaultUser(),
-            id: createId('usr'),
-            name: name.trim() || 'User',
-            email: email.trim(),
-            plan: 'Standard',
-          });
-          return;
+        if (!isSupabaseConfigured()) {
+          const message = err instanceof Error ? err.message : String(err);
+          if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network')) {
+            setUser({
+              ...createDefaultUser(),
+              id: createId('usr'),
+              name: name.trim() || 'User',
+              email: email.trim(),
+              plan: 'Standard',
+            });
+            return;
+          }
         }
         throw err;
       }

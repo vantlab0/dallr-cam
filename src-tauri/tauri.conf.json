@@ -25,8 +25,8 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost https://api.decart.ai wss://api.decart.ai https://platform.decart.ai https://*.decart.ai wss://*.decart.ai https://*.livekit.cloud wss://*.livekit.cloud",
-      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' ws://localhost:1420 http://localhost:1420 ipc: http://ipc.localhost https://api.decart.ai wss://api.decart.ai https://platform.decart.ai https://*.decart.ai wss://*.decart.ai https://*.livekit.cloud wss://*.livekit.cloud"
+      "csp": "default-src 'self'; script-src 'self' https://js.paystack.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; frame-src 'self' https://checkout.paystack.com https://*.paystack.co https://*.paystack.com; connect-src 'self' ipc: http://ipc.localhost https: wss: https://api.decart.ai wss://api.decart.ai https://platform.decart.ai https://*.decart.ai wss://*.decart.ai https://*.livekit.cloud wss://*.livekit.cloud https://*.supabase.co wss://*.supabase.co https://*.paystack.co https://api.paystack.co",
+      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-eval' https://js.paystack.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; frame-src 'self' https://checkout.paystack.com https://*.paystack.co https://*.paystack.com; connect-src 'self' ws://localhost:1420 http://localhost:1420 ipc: http://ipc.localhost https: wss: https://api.decart.ai wss://api.decart.ai https://platform.decart.ai https://*.decart.ai wss://*.decart.ai https://*.livekit.cloud wss://*.livekit.cloud https://*.supabase.co wss://*.supabase.co https://*.paystack.co https://api.paystack.co"
     }
   },
   "bundle": {
