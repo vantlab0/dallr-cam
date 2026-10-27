@@ -1,4 +1,4 @@
-import { getPaystackPublicKey as getVaultPaystackKey } from '@/services/security/vault';
+import { getPaystackPublicKey as getVaultPaystackKey, isPaystackConfigured } from '@/services/security/vault';
 
 export const PAYSTACK_PUBLIC_KEY_STORAGE = 'dallr_paystack_public_key';
 
@@ -8,7 +8,9 @@ export function getPaystackPublicKey(): string {
       const stored = window.localStorage.getItem(PAYSTACK_PUBLIC_KEY_STORAGE);
       if (stored && stored.trim()) return stored.trim();
     }
-  } catch {}
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
   return getVaultPaystackKey();
 }
 
@@ -21,7 +23,9 @@ export function setPaystackPublicKey(key: string): void {
         window.localStorage.removeItem(PAYSTACK_PUBLIC_KEY_STORAGE);
       }
     }
-  } catch {}
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
 }
 
 declare global {
@@ -85,49 +89,57 @@ export interface PaystackCheckoutOptions {
 
 export async function openPaystackCheckout(options: PaystackCheckoutOptions): Promise<void> {
   const key = getPaystackPublicKey();
+  const configured = isPaystackConfigured();
   const koboAmount = Math.max(100, Math.round(options.amountNgn * 100));
   const reference = `dallr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  try {
-    await loadPaystackScript();
+  if (configured) {
+    try {
+      await loadPaystackScript();
 
-    if (window.PaystackPop) {
-      const handler = window.PaystackPop.setup({
-        key,
-        email: options.email,
-        amount: koboAmount,
-        currency: 'NGN',
-        ref: reference,
-        metadata: {
-          custom_fields: [
-            {
-              display_name: 'Credits Purchased',
-              variable_name: 'credits',
-              value: options.credits,
-            },
-            {
-              display_name: 'USD Equivalent',
-              variable_name: 'amount_usd',
-              value: options.amountUsd,
-            },
-          ],
-        },
-        callback: (response) => {
-          options.onSuccess(response.reference || reference);
-        },
-        onClose: () => {
-          options.onCancel?.();
-        },
-      });
+      if (window.PaystackPop) {
+        const handler = window.PaystackPop.setup({
+          key,
+          email: options.email,
+          amount: koboAmount,
+          currency: 'NGN',
+          ref: reference,
+          metadata: {
+            custom_fields: [
+              {
+                display_name: 'Credits Purchased',
+                variable_name: 'credits',
+                value: options.credits,
+              },
+              {
+                display_name: 'USD Equivalent',
+                variable_name: 'amount_usd',
+                value: options.amountUsd,
+              },
+            ],
+          },
+          callback: (response) => {
+            options.onSuccess(response.reference || reference);
+          },
+          onClose: () => {
+            options.onCancel?.();
+          },
+        });
 
-      handler.openIframe();
+        handler.openIframe();
+        return;
+      }
+      throw new Error('Paystack inline SDK failed to initialize.');
+    } catch (err) {
+      console.error('[Paystack] Checkout failed:', err);
+      const msg = err instanceof Error ? err.message : 'Unable to connect to Paystack payment gateway.';
+      alert(`Payment Error: ${msg}\n\nPlease check your network connection or ad-blocker settings.`);
+      options.onCancel?.();
       return;
     }
-  } catch (err) {
-    console.warn('[Paystack] Script loading error, falling back to simulated checkout:', err);
   }
 
-  // Graceful fallback if Paystack iframe is blocked by adblock or environment
+  // Fallback demo checkout only when VITE_PAYSTACK_PUBLIC_KEY is not configured in dev mode
   const confirmed = window.confirm(
     `[Paystack Sandbox / Demo Mode]\n\nPay ₦${options.amountNgn.toLocaleString()} ($${options.amountUsd}) for ${options.credits.toLocaleString()} Dallr Cam credits?\n\nClick OK to simulate successful Paystack card approval.`,
   );

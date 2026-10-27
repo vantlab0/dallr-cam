@@ -22,6 +22,9 @@ describe('session credential provider', () => {
     expect(resolveTokenEndpoint('https://api.example.com/token', true)).toBe(
       'https://api.example.com/token',
     );
+    expect(resolveTokenEndpoint('https://api.example.com/token', false)).toBe(
+      'https://api.example.com/token',
+    );
     expect(resolveTokenEndpoint(undefined, false)).toBeNull();
   });
 

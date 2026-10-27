@@ -129,7 +129,9 @@ export function Settings() {
       if (typeof window !== 'undefined') {
         return window.localStorage.getItem(DECART_API_KEY_STORAGE) || '';
       }
-    } catch {}
+    } catch {
+      // Ignore storage errors
+    }
     return '';
   });
   const [endpointInput, setEndpointInput] = useState(() => {
@@ -137,7 +139,9 @@ export function Settings() {
       if (typeof window !== 'undefined') {
         return window.localStorage.getItem(DECART_TOKEN_ENDPOINT_STORAGE) || '';
       }
-    } catch {}
+    } catch {
+      // Ignore storage errors
+    }
     return '';
   });
   const [paystackKeyInput, setPaystackKeyInput] = useState(() => getPaystackPublicKey());

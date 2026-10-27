@@ -53,7 +53,9 @@ export function resolveTokenEndpoint(
       const custom = window.localStorage.getItem(DECART_TOKEN_ENDPOINT_STORAGE);
       if (custom?.trim()) return custom.trim();
     }
-  } catch {}
+  } catch {
+    // Ignore storage errors
+  }
   return isDevelopment ? DEFAULT_DEV_ENDPOINT : null;
 }
 
@@ -95,7 +97,9 @@ export function createTokenEndpointProvider(
         const stored = window.localStorage.getItem(DECART_API_KEY_STORAGE)?.trim();
         if (stored) return stored;
       }
-    } catch {}
+    } catch {
+      // Ignore storage errors
+    }
     if (
       typeof import.meta.env.VITE_DECART_API_KEY === 'string' &&
       import.meta.env.VITE_DECART_API_KEY.trim()
