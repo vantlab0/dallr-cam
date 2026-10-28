@@ -10,15 +10,15 @@ import {
 } from '@/lib/credits';
 
 describe('credit maths', () => {
-  it('converts the $20 minimum into 1,000 credits', () => {
-    expect(usdToCredits(20)).toBe(1_000);
+  it('converts the $10 minimum into 1,000 credits', () => {
+    expect(usdToCredits(10)).toBe(1_000);
     expect(MIN_TOPUP_CREDITS).toBe(1_000);
-    expect(usdToCredits(250)).toBe(12_500);
+    expect(usdToCredits(250)).toBe(25_000);
   });
 
   it('converts credits back to USD', () => {
-    expect(creditsToUsd(1_000)).toBeCloseTo(20, 6);
-    expect(creditsToUsd(4_820)).toBeCloseTo(96.4, 6);
+    expect(creditsToUsd(1_000)).toBeCloseTo(10, 6);
+    expect(creditsToUsd(4_820)).toBeCloseTo(48.2, 6);
   });
 
   it('computes the mock NGN checkout equivalent', () => {
@@ -39,8 +39,9 @@ describe('credit maths', () => {
   });
 
   it('enforces the top-up minimum', () => {
+    expect(isValidTopUpUsd(10)).toBe(true);
     expect(isValidTopUpUsd(20)).toBe(true);
-    expect(isValidTopUpUsd(19.99)).toBe(false);
+    expect(isValidTopUpUsd(9.99)).toBe(false);
     expect(isValidTopUpUsd(Number.NaN)).toBe(false);
   });
 });

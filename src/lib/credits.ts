@@ -1,10 +1,10 @@
-export const CREDIT_USD = 0.02;
+export const CREDIT_USD = 0.01;
 export const CREDITS_PER_USD = 1 / CREDIT_USD;
 export const CREDITS_PER_SECOND = 4;
 export const CREDITS_PER_MINUTE = CREDITS_PER_SECOND * 60; // 240 credits/min
-export const MIN_TOPUP_USD = 20;
+export const MIN_TOPUP_USD = 10;
 export const MIN_TOPUP_CREDITS = MIN_TOPUP_USD * CREDITS_PER_USD;
-export const TOPUP_PRESETS_USD = [20, 50, 100, 250] as const;
+export const TOPUP_PRESETS_USD = [10, 50, 100, 250] as const;
 
 export function usdToCredits(usd: number): number {
   return Math.round(usd * CREDITS_PER_USD);

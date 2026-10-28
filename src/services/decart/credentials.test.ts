@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   createTokenEndpointProvider,
   resolveTokenEndpoint,
@@ -17,6 +17,14 @@ function fakeResponse(
 }
 
 describe('session credential provider', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_DECART_API_KEY', '');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('uses the local dev endpoint in development and requires configuration in production', () => {
     expect(resolveTokenEndpoint(undefined, true)).toBe('/api/realtime-token');
     expect(resolveTokenEndpoint('https://api.example.com/token', true)).toBe(
@@ -36,6 +44,15 @@ describe('session credential provider', () => {
       '/api/realtime-token',
       expect.objectContaining({ method: 'POST', credentials: 'omit', cache: 'no-store' }),
     );
+  });
+
+  it('returns the direct API key when VITE_DECART_API_KEY is set', async () => {
+    vi.stubEnv('VITE_DECART_API_KEY', 'direct-key-123');
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
+    const provider = createTokenEndpointProvider(null, { fetchImpl });
+
+    await expect(provider.getToken()).resolves.toBe('direct-key-123');
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it('fails safely when no endpoint is configured', async () => {

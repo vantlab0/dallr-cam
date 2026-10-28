@@ -355,8 +355,8 @@ export function Wallet() {
           <FormField
             label="Custom amount"
             htmlFor="topup-amount"
-            error={!amountValid ? 'The minimum top-up is $20.' : undefined}
-            hint="USD · minimum $20"
+            error={!amountValid ? 'The minimum top-up is $10.' : undefined}
+            hint="USD · minimum $10"
           >
             <div className="relative">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-white/30">

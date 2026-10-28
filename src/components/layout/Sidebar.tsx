@@ -403,7 +403,7 @@ function SidebarContent({
           </p>
           <div className="mt-2.5 h-px w-full bg-white/[0.06]" />
           <div className="mt-2 flex items-center justify-between text-[10.5px]">
-            <span className="text-white/35">Add credits · min $20</span>
+            <span className="text-white/35">Add credits · min $10</span>
             <span className="font-medium text-accent/80">Top up</span>
           </div>
         </Link>
