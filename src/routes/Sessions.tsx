@@ -34,7 +34,7 @@ import { CopyButton } from '@/components/ui/CopyButton';
 import { Stat } from '@/components/ui/Progress';
 import { cn } from '@/lib/utils';
 
-type SessionFilter = 'all' | SessionStatus | 'demo' | 'live';
+type SessionFilter = 'all' | SessionStatus | 'live';
 
 const statusTone: Record<SessionStatus, BadgeTone> = {
   completed: 'positive',
@@ -70,7 +70,6 @@ export function Sessions() {
       completed: sorted.filter((session) => session.status === 'completed').length,
       stopped: sorted.filter((session) => session.status === 'stopped').length,
       failed: sorted.filter((session) => session.status === 'failed').length,
-      demo: sorted.filter((session) => session.mode === 'demo').length,
       live: sorted.filter((session) => session.mode === 'live').length,
     }),
     [sorted],
@@ -79,15 +78,9 @@ export function Sessions() {
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return sorted.filter((session) => {
-      if (filter === 'demo' && session.mode !== 'demo') return false;
-      if (filter === 'live' && session.mode !== 'live') return false;
-      if (
-        filter !== 'all' &&
-        filter !== 'demo' &&
-        filter !== 'live' &&
-        session.status !== filter
-      ) {
-        return false;
+      if (filter !== 'all') {
+        const matches = filter === 'live' || session.status === filter;
+        if (!matches) return false;
       }
       if (!normalized) return true;
       return (
@@ -201,7 +194,6 @@ export function Sessions() {
               { value: 'stopped', label: 'Stopped', count: counts.stopped },
               { value: 'failed', label: 'Failed', count: counts.failed },
               { value: 'live', label: 'Live', count: counts.live },
-              { value: 'demo', label: 'Dry runs', count: counts.demo },
             ]}
           />
           <div className="relative w-full lg:w-[260px]">
@@ -283,15 +275,9 @@ export function Sessions() {
                             <span className="truncate text-[12px] font-medium text-white/72 group-hover:text-white/88">
                               {session.title}
                             </span>
-                            {session.mode === 'live' ? (
-                              <Badge tone="positive" className="h-[18px] px-1.5 text-[8.5px]">
-                                Live
-                              </Badge>
-                            ) : session.mode === 'demo' ? (
-                              <Badge tone="accent" className="h-[18px] px-1.5 text-[8.5px]">
-                                Dry run
-                              </Badge>
-                            ) : null}
+                            <Badge tone="positive" className="h-[18px] px-1.5 text-[8.5px]">
+                              Live
+                            </Badge>
                           </span>
                           <span className="mt-0.5 flex items-center gap-1.5 text-[9.5px] text-white/27">
                             <span className="truncate">{preset?.name ?? 'Custom transform'}</span>
@@ -357,21 +343,7 @@ export function Sessions() {
               <Badge tone={statusTone[selected.status]} dot>
                 {statusLabel[selected.status]}
               </Badge>
-              <Badge
-                tone={
-                  selected.mode === 'live'
-                    ? 'positive'
-                    : selected.mode === 'demo'
-                      ? 'accent'
-                      : 'neutral'
-                }
-              >
-                {selected.mode === 'live'
-                  ? 'Live session'
-                  : selected.mode === 'demo'
-                    ? 'Local dry run'
-                    : 'Sample record'}
-              </Badge>
+              <Badge tone="positive">Live session</Badge>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

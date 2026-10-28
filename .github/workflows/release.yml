@@ -53,6 +53,20 @@ jobs:
 
       - name: Build frontend
         run: pnpm build
+        env:
+          # Direct Decart API key (embedded in client bundle so the desktop app
+          # authenticates with Decart directly — no external token endpoint needed).
+          VITE_DECART_API_KEY: ${{ secrets.DECART_API_KEY }}
+          # Supabase auth (publishable/anon keys are public; the service role key stays server-side).
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_JWKS_URL: ${{ vars.SUPABASE_JWKS_URL }}
+          # Paystack (public key is safe for the client; the secret key stays server-side).
+          VITE_PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}
+          PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DECART_API_KEY: ${{ secrets.DECART_API_KEY }}
 
       - name: Build Tauri Desktop Package
         uses: tauri-apps/tauri-action@v0

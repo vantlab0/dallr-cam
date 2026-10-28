@@ -42,10 +42,17 @@ export interface AppContextValue {
   updateNotifications: (patch: Partial<NotificationPreferences>) => void;
   setStudioDraft: (patch: Partial<Omit<StudioDraft, 'revision'>>) => void;
   addSessionRecord: (input: SessionRecordInput) => void;
-  deductCredits: (amount: number) => boolean;
-  recordUsageTransaction: (creditsUsed: number, durationSec: number, title?: string) => void;
-  topUpWallet: (addedCredits: number, amountUsd: number, description?: string) => void;
-  resetDemoData: () => void;
+  deductCredits: (amount: number) => Promise<boolean>;
+  recordUsageTransaction: (
+    creditsUsed: number,
+    durationSec: number,
+    title?: string,
+  ) => Promise<void>;
+  topUpWallet: (
+    addedCredits: number,
+    amountUsd: number,
+    description?: string,
+  ) => Promise<boolean>;
   reconnect: () => Promise<boolean>;
 }
 

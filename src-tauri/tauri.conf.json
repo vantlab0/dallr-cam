@@ -25,7 +25,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost https://api.decart.ai wss://api.decart.ai https://platform.decart.ai https://*.decart.ai wss://*.decart.ai https://*.livekit.cloud wss://*.livekit.cloud",
+      "csp": "default-src 'self'; script-src 'self' https://js.paystack.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost https://api.decart.ai wss://api.decart.ai https://platform.decart.ai https://*.decart.ai wss://*.decart.ai https://*.livekit.cloud wss://*.livekit.cloud https://*.dallr.studio wss://*.dallr.studio https://*.supabase.co wss://*.supabase.co https://api.paystack.co wss://api.paystack.co http://localhost:8787 https://localhost:8787 http://127.0.0.1:8787 https://127.0.0.1:8787",
       "devCsp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' ws://localhost:1420 http://localhost:1420 ipc: http://ipc.localhost https://api.decart.ai wss://api.decart.ai https://platform.decart.ai https://*.decart.ai wss://*.decart.ai https://*.livekit.cloud wss://*.livekit.cloud"
     }
   },

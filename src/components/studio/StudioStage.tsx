@@ -57,9 +57,10 @@ function StreamVideo({
   onPipChangeRef.current = onPipChange;
 
   useEffect(() => {
+    const element = videoRef.current;
     return () => {
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
+      if (element) {
+        element.srcObject = null;
       }
     };
   }, []);

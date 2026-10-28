@@ -1,8 +1,32 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
-import { loadEnv } from 'vite';
+import { loadEnv, type Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import { decartTokenPlugin } from './vite/decart-token-plugin';
+
+function decartWorkerPlugin(): Plugin {
+  return {
+    name: 'decart-worker-plugin',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url && req.url.includes('frame-metadata-worker.js')) {
+          const workerPath = path.resolve(
+            process.cwd(),
+            'node_modules/@decartai/sdk/dist/realtime/browser/frame-metadata-worker.js',
+          );
+          if (fs.existsSync(workerPath)) {
+            res.setHeader('Content-Type', 'text/javascript');
+            res.end(fs.readFileSync(workerPath));
+            return;
+          }
+        }
+        next();
+      });
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   // Load non-VITE variables for the dev-only token endpoint. `DECART_API_KEY`
@@ -11,7 +35,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: './',
-    plugins: [react(), decartTokenPlugin({ apiKey: env.DECART_API_KEY })],
+    plugins: [react(), decartTokenPlugin({ apiKey: env.DECART_API_KEY }), decartWorkerPlugin()],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

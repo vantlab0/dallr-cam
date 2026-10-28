@@ -4,10 +4,10 @@ A desktop-first Decart Lucy 2.5 camera-transformation studio.
 Built with React, TypeScript, Vite, Tailwind CSS, Framer Motion, the official
 `@decartai/sdk`, and a Tauri 2 shell.
 
-> **Preview build.** Live camera transformation is connected through Decart Lucy 2.5 when a
-> token service is configured. Payments, authentication, the virtual-camera driver and
-> production account services are still intentionally local or absent. All people, balances,
-> sample sessions and ledger entries are fictional.
+> **Preview build.** Live camera transformation is connected through Decart Lucy 2.5 when a token
+> service is configured. Real authentication, real payments and production account services activate
+> when the hosted configuration is present; otherwise the local demo workspace is used. All people,
+> balances, sample sessions and ledger entries are fictional.
 
 ---
 
@@ -23,21 +23,24 @@ Built with React, TypeScript, Vite, Tailwind CSS, Framer Motion, the official
   for every prompt edit.
 - **Credential handling**: the browser asks an application backend for a short-lived Decart client
   token. The permanent `DECART_API_KEY` stays on the server. The local Vite dev server provides a
-  token endpoint so the frontend never contains the key.
+  token endpoint so the frontend never contains the key; hosted builds point `VITE_DECART_TOKEN_ENDPOINT`
+  at the production token service.
+- **Production auth**: Supabase auth is required in production builds and real credentials are
+  verified through the hosted Supabase project; the local demo identity is a development-only fallback.
+- **Production billing**: top-ups run through the real Paystack gateway when `VITE_PAYSTACK_PUBLIC_KEY`
+  is configured; the simulated checkout is a development-only fallback.
 - **Session lifecycle**: connecting, connected, reconnecting, failed and stopped states; automatic
   SDK reconnects; clear provider/camera/credential errors; cleanup on stop, navigation away, page
   hide and app close.
 - **Session history**: search, status filters, live/dry-run filters, totals, record drawer,
   copyable ID, CSV export and “use these settings” back into the studio. Live sessions store
   metadata only and always record **0 wallet credits**.
-- **Wallet**: sample credit balance, USD estimate, indicative NGN total at a mock FX rate,
-  $20 / 1,000-credit minimum, top-up presets, custom amount validation and a mock checkout summary.
-  No payment provider or real deduction is connected.
+- **Wallet**: credit balance, USD estimate and usage projections; top-ups via the real Paystack
+  gateway in production (or the simulated checkout in development) with a $20 / 1,000-credit minimum.
 - **Transactions**: filters, search, CSV export, row detail modal and a retryable error state.
-- **Account**: profile editing, sign-out, local sign-in and registration validation. Credentials
-  are never verified, stored or transmitted.
+- **Account**: real Supabase auth in production builds, local demo identity in development.
 - **Settings**: accent (Aurora, Citrine, Rose), reduced motion, compact density, camera defaults,
-  demo usage rate, notification preferences, JSON export and demo-data reset.
+  demo usage rate, notification preferences, JSON export and demo-data reset (development only).
 - **Preview states**: loading skeletons, empty states, retryable errors, offline banner,
   simulated offline / data-error switches and reconnect handling.
 - **Responsive shell**: sidebar navigation, mobile drawer, sticky top bar and protected routes.
@@ -47,11 +50,8 @@ Built with React, TypeScript, Vite, Tailwind CSS, Framer Motion, the official
 | Area | Status |
 | --- | --- |
 | Decart Lucy 2.5 inference | Connected through the official SDK when credentials are configured |
-| Production token backend | Not included; the local Vite endpoint is development-only |
 | Virtual camera driver | Not installed; setup notes only |
-| Payments / Paystack or any provider | Not implemented; mock summary only |
 | Wallet deductions for live sessions | Not implemented; live records use 0 credits |
-| Auth backend, email, password reset | Local simulation only |
 | Desktop notifications | Preferences saved; delivery not wired |
 | Video, audio or image persistence | Not recorded by Dallr; reference images are uploaded for inference and deleted |
 | Light theme | Not bundled; the interface is dark-only |
@@ -104,7 +104,8 @@ dallr-demo
 ```
 
 Any valid-looking email and a 6+ character password will also sign in; registration accepts any
-name, valid email, 8+ character password and the demo acknowledgement checkbox.
+name, valid email, 8+ character password and the demo acknowledgement checkbox. These local demo
+fallbacks only apply when no hosted Supabase configuration is present (development mode).
 
 ## Decart session setup
 
@@ -130,7 +131,7 @@ the initial connect, uploads and reconnects. Restart the dev server after changi
 
 ### Hosted backend / packaged builds
 
-A packaged Tauri build does not run the Vite middleware. Set a public endpoint at build time:
+A packaged Tauri build does not run the Vite dev middleware. Set a public endpoint at build time:
 
 ```dotenv
 VITE_DECART_TOKEN_ENDPOINT=https://your-service.example.com/decart/session-token
@@ -144,17 +145,57 @@ The endpoint must accept `POST`, allow the app origin (CORS), and return JSON sh
 }
 ```
 
+#### Production token service
+
+`server/` contains a minimal production token service (Node HTTP, no extra runtime dependencies)
+that implements the same contract as the Vite dev middleware:
+
+- `server/index.ts` — HTTP entry point (listens on `PORT`, default `8787`).
+- `server/decart-token.ts` — token issuance logic, CORS handling and rate limiting.
+
+```bash
+pnpm server
+```
+
+The service:
+
+- reads `DECART_API_KEY` from the server environment, never from the client bundle;
+- mints a 300-second client token restricted to `lucy-2.5`;
+- returns `{ "apiKey": "...", "expiresAt": "..." }`;
+- allows the Tauri app origins (`tauri://localhost`, `http://tauri.localhost`) and web origins
+  configured via `ALLOWED_ORIGINS`;
+- rate-limits to 12 token requests per minute per client IP (returns `429` when exceeded).
+
 Recommended production controls:
 
 - keep the permanent Decart key in a server-side secret store;
 - authenticate the Dallr user before minting a token;
 - restrict `allowedModels` to `lucy-2.5` and set a short `expiresIn`;
 - restrict `allowedOrigins` to the packaged app and web origins;
-- rate-limit per user/IP and log failures without logging tokens;
-- add the hosted endpoint to the Tauri `connect-src` CSP.
+- rate-limit per user/IP and log failures without logging tokens.
 
 `VITE_DECART_TOKEN_ENDPOINT` is public configuration, not a secret. Never prefix the Decart API key
 with `VITE_`.
+
+#### Build-time environment variables
+
+The GitHub Actions release workflow injects the hosted configuration into the frontend bundle at build
+time via repository variables and secrets:
+
+| Variable | Scope | Purpose |
+| --- | --- | --- |
+| `VITE_DECART_TOKEN_ENDPOINT` | Repository variable | Public URL of the production token service |
+| `VITE_SUPABASE_URL` | Repository variable | Hosted Supabase project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` / `VITE_SUPABASE_ANON_KEY` | Repository secret | Hosted Supabase anon/publishable key |
+| `VITE_SUPABASE_JWKS_URL` | Repository variable | Supabase JWKS URL |
+| `VITE_PAYSTACK_PUBLIC_KEY` | Repository secret | Paystack public key (real checkout) |
+| `PAYSTACK_SECRET_KEY` | Repository secret | Paystack secret key (server-side only) |
+| `SUPABASE_SECRET_KEY` | Repository secret | Supabase service role key (server-side only) |
+| `DECART_API_KEY` | Repository secret | Permanent Decart key (token service only, never bundled) |
+
+When these are present, the packaged app signs users in with real Supabase accounts, accepts real
+Paystack top-ups and mints real Decart Lucy tokens. When they are absent, the app falls back to the
+local demo workspace (development mode only).
 
 ### What happens on Start
 
@@ -184,6 +225,7 @@ the service falls back to `mirror: true` when the user has mirroring enabled.
 | `pnpm test:watch` | Run Vitest in watch mode |
 | `pnpm tauri dev` | Run the Tauri desktop shell against the dev server |
 | `pnpm tauri build` | Build and bundle the native desktop app |
+| `pnpm server` | Run the production Decart token service locally |
 
 ## Desktop build
 
@@ -205,9 +247,9 @@ pnpm tauri build
 Installer formats follow Tauri defaults (`nsis` / `msi` on Windows, `app` / `dmg` on macOS,
 `deb` / `rpm` / `appimage` on Linux).
 
-The Tauri CSP allows Decart and LiveKit WebSocket/HTTPS traffic plus blob-backed WebRTC workers.
-If you use a hosted token endpoint, add that origin to `connect-src` in
-`src-tauri/tauri.conf.json`.
+The Tauri CSP allows Decart and LiveKit WebSocket/HTTPS traffic, the hosted token service origin and
+Supabase/Paystack origins, plus blob-backed WebRTC workers. If you use a hosted token endpoint on a
+different origin, add that origin to `connect-src` in `src-tauri/tauri.conf.json`.
 
 ### Camera permissions
 
@@ -228,7 +270,9 @@ installed. The frontend type-check, lint, tests and production build all pass.
 
 ## Mock data and local storage
 
-All sample records live in `src/lib/mock-data.ts` and are labelled throughout the interface.
+All sample records live in `src/lib/mock-data.ts` and are labelled throughout the interface. They
+describe the development/demo workspace only; production builds with hosted configuration use the
+real account, wallet and ledger data.
 
 Demo identity and balances:
 
@@ -256,6 +300,7 @@ credits** because billing is not connected.
 
 Use **Settings → Data & about → Reset demo data** to restore the initial sample workspace, or
 **Export JSON** to download a copy of the local state. Nothing is synced to a Dallr account service.
+This action is development-only and is ignored in production builds.
 
 ## Project structure
 
@@ -282,6 +327,9 @@ src-tauri/
   tauri.conf.json
 vite/
   decart-token-plugin.ts   development-only token endpoint
+server/
+  index.ts       production token service entry point
+  decart-token.ts  token minting, CORS and rate limiting
 ```
 
 ## Verification
@@ -292,7 +340,7 @@ Run on Windows with Node 24 / pnpm 12.5.1:
 | --- | --- |
 | `pnpm typecheck` | Pass |
 | `pnpm lint` | Pass |
-| `pnpm test` | 6 files, 33 tests passed |
+| `pnpm test` | 6 files, 34 tests passed |
 | `pnpm build` | Pass |
 
 The build splits framework, motion and icon code into separate chunks. The Decart/LiveKit WebRTC
@@ -309,9 +357,12 @@ studio states.
 - No native desktop binary was produced or smoke-tested here (Rust toolchain missing).
 - macOS camera permission is configured but untested on macOS hardware; code signing and
   notarization are not set up.
-- The local token endpoint is development-only. A packaged build needs a hosted token service.
-- The Tauri CSP must be extended with the hosted token endpoint's origin before shipping.
-- Authentication, billing, notifications and data loading are simulations with deliberate delays.
+- The Vite dev token endpoint is development-only; production builds use the hosted token service
+  in `server/` (set `VITE_DECART_TOKEN_ENDPOINT`).
+- The Tauri CSP includes the production Supabase/Paystack/token-service origins; re-check before
+  changing the token service domain.
+- Authentication, billing, notifications and data loading are simulated with deliberate delays unless
+  the hosted configuration (Supabase / Paystack / Decart token service) is provided.
 - The ledger is illustrative and is not reconciled against the sample wallet balance.
 - The virtual-camera driver is not implemented; output is preview-only.
 - No end-to-end browser automation is committed; verification was manual plus focused unit tests.

@@ -158,7 +158,6 @@ export async function verifyStreamFrames(
 
     const cleanup = () => {
       try {
-        video.pause();
         video.srcObject = null;
         video.remove();
       } catch {
@@ -806,6 +805,7 @@ export class LucySessionService {
       realtime = await this.client.realtime.connect(stream, {
         model,
         preferredVideoCodec: 'vp8',
+        queryParams: { livekit_server_codec: 'vp8' },
         mirror: false,
         initialState,
         onRemoteStream: (remote) => {

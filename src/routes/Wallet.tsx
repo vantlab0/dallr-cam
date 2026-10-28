@@ -88,15 +88,28 @@ export function Wallet() {
         amountNgn: ngn,
         credits,
         amountUsd: safeAmountUsd,
-        onSuccess: (ref) => {
-          topUpWallet(credits, safeAmountUsd, `Paystack Top-up · ${formatCredits(credits)} credits (${ref})`);
+        onSuccess: async (ref) => {
+          const ok = await topUpWallet(
+            credits,
+            safeAmountUsd,
+            `Paystack Top-up · ${formatCredits(credits)} credits (${ref})`,
+          );
           setAddCreditsModalOpen(false);
           setIsProcessing(false);
-          pushToast({
-            tone: 'success',
-            title: 'Payment successful',
-            description: `Paystack confirmed. Added ${formatCredits(credits)} credits ($${safeAmountUsd}) to your wallet.`,
-          });
+          if (ok) {
+            pushToast({
+              tone: 'success',
+              title: 'Payment successful',
+              description: `Paystack confirmed. Added ${formatCredits(credits)} credits ($${safeAmountUsd}) to your wallet.`,
+            });
+          } else {
+            pushToast({
+              tone: 'error',
+              title: 'Top-up not credited',
+              description:
+                'Your card was charged but the credits were not added to your wallet. Contact support.',
+            });
+          }
         },
         onCancel: () => {
           setIsProcessing(false);

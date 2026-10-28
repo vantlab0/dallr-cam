@@ -34,7 +34,7 @@ export function formatUsdWhole(amount: number): string {
   return usdWholeFormatter.format(amount);
 }
 
-/** Formats a mock NGN checkout equivalent. The naira symbol is explicit for cross-platform consistency. */
+/** Formats an NGN checkout equivalent. The naira symbol is explicit for cross-platform consistency. */
 export function formatNgn(amount: number): string {
   return `₦${ngnNumberFormatter.format(amount)}`;
 }

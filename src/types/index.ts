@@ -16,8 +16,6 @@ export interface User {
   plan: string;
   joinedAt: string;
   workspaceId: string;
-  /** Mock accounts are local-only and are not backed by an auth service. */
-  isDemo: boolean;
 }
 
 export interface Wallet {
@@ -43,7 +41,7 @@ export interface Transaction {
 }
 
 export type SessionStatus = 'completed' | 'stopped' | 'failed';
-export type SessionMode = 'sample' | 'demo' | 'live';
+export type SessionMode = 'live';
 
 export interface SessionRecord {
   id: string;

@@ -2,17 +2,23 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { createId } from '@/lib/id';
 import { createDefaultUser } from '@/lib/defaults';
 import {
+  getSupabaseClient,
   getInitialSupabaseUser,
   signInWithSupabase,
   signUpWithSupabase,
   signOutFromSupabase,
 } from '@/services/supabase/client';
 import {
-  clearPersistedState,
   createDefaultState,
   loadPersistedState,
   savePersistedState,
 } from '@/lib/storage';
+import {
+  fetchWallet,
+  topUpWallet as topUpWalletService,
+  deductWallet as deductWalletService,
+  recordTransaction as recordTransactionService,
+} from '@/services/supabase/wallet';
 import type {
   AppSettings,
   ConnectionState,
@@ -20,9 +26,12 @@ import type {
   PersistedState,
   StudioDraft,
   User,
+  Wallet,
 } from '@/types';
 import { AppContext, type SessionRecordInput } from './app-context';
 import { useToast } from './useToast';
+import { isProductionRuntime } from '@/lib/environment';
+import { isSupabaseConfigured } from '@/services/security/vault';
 
 function titleCase(value: string): string {
   return value
@@ -47,8 +56,12 @@ function userFromEmail(email: string): User {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [initial] = useState<PersistedState>(() => loadPersistedState() ?? createDefaultState());
   const [booting, setBooting] = useState(true);
-  const [user, setUser] = useState<User | null>(initial.user);
-  const [wallet, setWallet] = useState(initial.wallet);
+  const [user, setUser] = useState<User | null>(() =>
+    // Production builds require a real Supabase session; development seeds a local user.
+    isProductionRuntime() ? null : initial.user,
+  );
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [wallet, setWallet] = useState<Wallet>(initial.wallet);
   const [settings, setSettings] = useState<AppSettings>(initial.settings);
   const [transactions, setTransactions] = useState(initial.transactions);
   const [sessions, setSessions] = useState(initial.sessions);
@@ -72,6 +85,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  const captureAccessToken = useCallback(async () => {
+    try {
+      const client = getSupabaseClient();
+      const { data } = await client.auth.getSession();
+      setAccessToken(data.session?.access_token ?? null);
+    } catch {
+      setAccessToken(null);
+    }
+  }, []);
+
+  const seedWalletFromSupabase = useCallback(async () => {
+    if (!isSupabaseConfigured() || !accessToken) return;
+    try {
+      const balance = await fetchWallet();
+      if (balance) {
+        setWallet((current) => ({
+          ...current,
+          balanceCredits: balance.balanceCredits,
+          lifetimeTopUpUsd: balance.lifetimeTopUpUsd,
+        }));
+      }
+    } catch {
+      // Supabase unreachable; keep the local wallet state.
+    }
+  }, [accessToken]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -101,29 +140,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
       : 'online';
 
   useEffect(() => {
-    getInitialSupabaseUser().then((sbUser) => {
+    getInitialSupabaseUser().then(async (sbUser) => {
       if (sbUser) {
         setUser((current) => current || sbUser);
       }
+      await captureAccessToken();
+      await seedWalletFromSupabase();
     }).catch(() => {});
-  }, []);
+  }, [captureAccessToken, seedWalletFromSupabase]);
 
   const signIn = useCallback(
     async ({ email, password }: { email: string; password: string }) => {
       try {
         const sbUser = await signInWithSupabase({ email, password });
         setUser(sbUser);
+        await captureAccessToken();
+        await seedWalletFromSupabase();
       } catch (err: unknown) {
-        // Fallback for offline testing if needed, or rethrow
+        // Offline/dev fallback only: production builds must authenticate for real.
         const message = err instanceof Error ? err.message : String(err);
-        if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network')) {
+        if (
+          !isProductionRuntime() &&
+          (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network'))
+        ) {
           setUser(userFromEmail(email));
           return;
         }
         throw err;
       }
     },
-    [],
+    [captureAccessToken, seedWalletFromSupabase],
   );
 
   const register = useCallback(
@@ -131,9 +177,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const { user: sbUser } = await signUpWithSupabase({ email, password, name });
         setUser(sbUser);
+        await captureAccessToken();
+        await seedWalletFromSupabase();
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
-        if (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network')) {
+        if (
+          !isProductionRuntime() &&
+          (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network'))
+        ) {
           setUser({
             ...createDefaultUser(),
             id: createId('usr'),
@@ -146,7 +197,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         throw err;
       }
     },
-    [],
+    [captureAccessToken, seedWalletFromSupabase],
   );
 
   const signOut = useCallback(() => {
@@ -202,11 +253,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     walletRef.current = wallet;
   }, [wallet]);
 
-  const deductCredits = useCallback((amount: number): boolean => {
+  const deductCredits = useCallback(async (amount: number): Promise<boolean> => {
     if (walletRef.current.balanceCredits < amount) {
       return false;
     }
-    const nextBalance = Math.max(0, walletRef.current.balanceCredits - amount);
+    const result = await deductWalletService(amount, 'Live rendering');
+    if (!result.ok) {
+      return false;
+    }
+    const nextBalance =
+      typeof result.balanceCredits === 'number'
+        ? result.balanceCredits
+        : Math.max(0, walletRef.current.balanceCredits - amount);
     walletRef.current = { ...walletRef.current, balanceCredits: nextBalance };
     setWallet((current) => ({
       ...current,
@@ -215,65 +273,86 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
 
-  const recordUsageTransaction = useCallback((creditsUsed: number, durationSec: number, title?: string) => {
-    if (creditsUsed <= 0) return;
-    const amountUsd = Number((creditsUsed * 0.02).toFixed(2));
-    setTransactions((current) => [
-      {
-        id: createId('txn'),
-        type: 'usage',
-        description: title ? `Live rendering · ${title} (${durationSec}s)` : `Live rendering · ${durationSec}s`,
-        credits: creditsUsed,
+  const recordUsageTransaction = useCallback(
+    async (creditsUsed: number, durationSec: number, title?: string) => {
+      if (creditsUsed <= 0) return;
+      const amountUsd = Number((creditsUsed * 0.02).toFixed(2));
+      const reference = `use_${Math.random().toString(36).slice(2, 10)}`;
+      const description = title
+        ? `Live rendering · ${title} (${durationSec}s)`
+        : `Live rendering · ${durationSec}s`;
+      await recordTransactionService(
+        creditsUsed,
         amountUsd,
-        status: 'completed',
-        createdAt: new Date().toISOString(),
-        reference: `use_${Math.random().toString(36).slice(2, 10)}`,
-        method: 'Credit balance',
-      },
-      ...current,
-    ]);
-  }, []);
-
-  const topUpWallet = useCallback((addedCredits: number, amountUsd: number, description = 'Credit top-up') => {
-    const nextBalance = walletRef.current.balanceCredits + addedCredits;
-    const nextLifetime = walletRef.current.lifetimeTopUpUsd + amountUsd;
-    walletRef.current = { ...walletRef.current, balanceCredits: nextBalance, lifetimeTopUpUsd: nextLifetime };
-    setWallet((current) => ({
-      ...current,
-      balanceCredits: nextBalance,
-      lifetimeTopUpUsd: nextLifetime,
-    }));
-    setTransactions((current) => [
-      {
-        id: createId('txn'),
-        type: 'topup',
+        'usage',
         description,
-        credits: addedCredits,
-        amountUsd,
-        status: 'completed',
-        createdAt: new Date().toISOString(),
-        reference: `top_${Math.random().toString(36).slice(2, 10)}`,
-        method: 'Card Payment',
-      },
-      ...current,
-    ]);
-  }, []);
+        reference,
+      );
+      setTransactions((current) => [
+        {
+          id: createId('txn'),
+          type: 'usage',
+          description,
+          credits: creditsUsed,
+          amountUsd,
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+          reference,
+          method: 'Credit balance',
+        },
+        ...current,
+      ]);
+    },
+    [],
+  );
 
-  const resetDemoData = useCallback(() => {
-    const defaults = createDefaultState();
-    clearPersistedState();
-    setUser(defaults.user);
-    setWallet(defaults.wallet);
-    setSettings(defaults.settings);
-    setTransactions(defaults.transactions);
-    setSessions(defaults.sessions);
-    setStudioDraftState(defaults.studioDraft);
-    setOnlineNow(navigator.onLine);
-    setReconnecting(false);
-    reconnectingRef.current = false;
-    setBooting(true);
-    window.setTimeout(() => setBooting(false), 450);
-  }, []);
+  const topUpWallet = useCallback(
+    async (
+      addedCredits: number,
+      amountUsd: number,
+      description = 'Credit top-up',
+    ): Promise<boolean> => {
+      const reference = `top_${Math.random().toString(36).slice(2, 10)}`;
+      const result = await topUpWalletService(
+        addedCredits,
+        amountUsd,
+        reference,
+        description,
+      );
+      if (!result.ok) return false;
+      const nextBalance =
+        typeof result.balanceCredits === 'number'
+          ? result.balanceCredits
+          : walletRef.current.balanceCredits + addedCredits;
+      const nextLifetime = walletRef.current.lifetimeTopUpUsd + amountUsd;
+      walletRef.current = {
+        ...walletRef.current,
+        balanceCredits: nextBalance,
+        lifetimeTopUpUsd: nextLifetime,
+      };
+      setWallet((current) => ({
+        ...current,
+        balanceCredits: nextBalance,
+        lifetimeTopUpUsd: nextLifetime,
+      }));
+      setTransactions((current) => [
+        {
+          id: createId('txn'),
+          type: 'topup',
+          description,
+          credits: addedCredits,
+          amountUsd,
+          status: 'completed',
+          createdAt: new Date().toISOString(),
+          reference,
+          method: 'Card Payment',
+        },
+        ...current,
+      ]);
+      return true;
+    },
+    [],
+  );
 
   const reconnect = useCallback(async (): Promise<boolean> => {
     if (reconnectingRef.current) return false;
@@ -323,7 +402,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deductCredits,
       recordUsageTransaction,
       topUpWallet,
-      resetDemoData,
       reconnect,
     }),
     [
@@ -346,7 +424,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deductCredits,
       recordUsageTransaction,
       topUpWallet,
-      resetDemoData,
       reconnect,
     ],
   );

@@ -16,7 +16,6 @@ export const DEFAULT_USER: User = {
   plan: 'Standard',
   joinedAt: new Date().toISOString(),
   workspaceId: 'ws_dallr_main',
-  isDemo: false,
 };
 
 export const DEFAULT_WALLET: Wallet = {

@@ -149,14 +149,18 @@ export function LiveStudio() {
       return;
     }
 
-    const interval = window.setInterval(() => {
+    const interval = window.setInterval(async () => {
       const currentElapsed = Math.floor((Date.now() - firstFrameAt) / 1_000);
       setElapsedSec(currentElapsed);
 
-      // Deduct 4 credits for every second rendered
-      const success = deductCredits(4);
+      // Deduct 4 credits for every second rendered. In local development the
+      // wallet backend (/api/wallet/*) is not served by Vite, so a failed
+      // deduction must not tear down an otherwise healthy session.
+      const success = await deductCredits(4);
       if (success) {
         sessionCreditsUsedRef.current += 4;
+      } else if (import.meta.env.DEV) {
+        console.warn('[Dallr] Wallet deduct skipped in dev (no wallet backend).');
       } else {
         stop('user');
         pushToast({

@@ -33,7 +33,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input, Switch } from '@/components/ui/Form';
 import { InlineNotice } from '@/components/ui/Feedback';
-import { Modal } from '@/components/ui/Overlay';
 import { cn } from '@/lib/utils';
 import {
   DECART_API_KEY_STORAGE,
@@ -114,13 +113,11 @@ export function Settings() {
     studioDraft,
     updateSettings,
     updateNotifications,
-    resetDemoData,
     setStudioDraft,
   } = useApp();
   const { pushToast } = useToast();
   const [tab, setTab] = useState<SettingsTab>('general');
   const [rateInput, setRateInput] = useState(String(settings.usageRatePerMin));
-  const [resetOpen, setResetOpen] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const runningInDesktop = isDesktopRuntime();
 
@@ -129,7 +126,9 @@ export function Settings() {
       if (typeof window !== 'undefined') {
         return window.localStorage.getItem(DECART_API_KEY_STORAGE) || '';
       }
-    } catch {}
+    } catch {
+      // Storage can throw in private browsing modes; fall back to defaults.
+    }
     return '';
   });
   const [endpointInput, setEndpointInput] = useState(() => {
@@ -137,7 +136,9 @@ export function Settings() {
       if (typeof window !== 'undefined') {
         return window.localStorage.getItem(DECART_TOKEN_ENDPOINT_STORAGE) || '';
       }
-    } catch {}
+    } catch {
+      // Storage can throw in private browsing modes; fall back to defaults.
+    }
     return '';
   });
   const [paystackKeyInput, setPaystackKeyInput] = useState(() => getPaystackPublicKey());
@@ -184,7 +185,7 @@ export function Settings() {
       pushToast({
         tone: 'error',
         title: 'Rate must be between 1 and 240',
-        description: 'This demo rate only affects local time estimates.',
+        description: 'This rate only affects local time estimates.',
       });
       return;
     }
@@ -216,16 +217,6 @@ export function Settings() {
       tone: 'success',
       title: 'Workspace exported',
       description: 'A JSON copy of your workspace state was downloaded.',
-    });
-  };
-
-  const handleReset = () => {
-    setResetOpen(false);
-    resetDemoData();
-    pushToast({
-      tone: 'success',
-      title: 'Workspace reset',
-      description: 'Wallet, sessions, transactions and settings were restored to defaults.',
     });
   };
 
@@ -368,7 +359,7 @@ export function Settings() {
               <Divider className="my-3.5" />
               <dl className="space-y-2.5 text-[11px]">
                 <div className="flex items-center justify-between gap-3">
-                  <dt className="text-white/30">Sample balance</dt>
+                  <dt className="text-white/30">Balance</dt>
                   <dd className="font-medium tabular-nums text-white/65">
                     {formatCredits(wallet.balanceCredits)} cr
                   </dd>
@@ -386,8 +377,7 @@ export function Settings() {
               </dl>
             </Card>
             <InlineNotice tone="neutral" icon={Info}>
-              Settings autosave after every change. Reset the sample workspace at any time from the
-              Data & about tab.
+              Settings autosave after every change. Your workspace state persists on this device.
             </InlineNotice>
           </div>
         </div>
@@ -528,7 +518,7 @@ export function Settings() {
             <div className="mt-2 divide-y divide-white/[0.05]">
               <SettingRow
                 title="Session ended"
-                description="A summary when a live session or dry run finishes."
+                description="A summary when a session ends."
                 control={
                   <Switch
                     checked={settings.notifications.sessionEnded}
@@ -679,14 +669,6 @@ export function Settings() {
               <Button size="sm" variant="secondary" icon={Download} onClick={handleExport}>
                 Export workspace JSON
               </Button>
-              <Button
-                size="sm"
-                variant="danger"
-                icon={RotateCcw}
-                onClick={() => setResetOpen(true)}
-              >
-                Reset workspace
-              </Button>
             </div>
           </Card>
 
@@ -709,28 +691,6 @@ export function Settings() {
           </Card>
         </div>
       ) : null}
-
-      <Modal
-        open={resetOpen}
-        onClose={() => setResetOpen(false)}
-        title="Reset workspace settings?"
-        description="This restores studio preferences and default settings."
-        size="sm"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setResetOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" icon={RotateCcw} onClick={handleReset}>
-              Reset settings
-            </Button>
-          </>
-        }
-      >
-        <p className="text-xs leading-relaxed text-white/60">
-          Session history and your wallet credits will remain saved, while camera and prompt configurations will reset to default.
-        </p>
-      </Modal>
 
       <DownloadAppModal
         open={downloadModalOpen}

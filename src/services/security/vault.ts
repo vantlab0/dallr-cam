@@ -125,3 +125,29 @@ export function getSupabaseConfig(): {
     jwksUrl: cachedSupabaseJwks,
   };
 }
+
+function hasValue(value: string | undefined): boolean {
+  return Boolean(value && value.trim().length > 0);
+}
+
+/**
+ * True when a real hosted Supabase project is configured for this build. When it
+ * is, the app must use real auth; when it is not, the local workspace is used.
+ */
+export function isSupabaseConfigured(): boolean {
+  const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
+  const publishable =
+    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined)?.trim() ||
+    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
+  return hasValue(url) && hasValue(publishable);
+}
+
+/**
+ * True when a real Paystack public key is configured for this build. Payments must
+ * go through Paystack; the simulated checkout is only a development fallback.
+ */
+export function isPaystackConfigured(): boolean {
+  const publicKey = (import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string | undefined)?.trim();
+  const secretKey = (import.meta.env.PAYSTACK_SECRET_KEY as string | undefined)?.trim();
+  return hasValue(publicKey) && hasValue(secretKey);
+}

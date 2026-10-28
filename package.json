@@ -16,7 +16,9 @@
     "build:desktop": "pnpm build && tauri build",
     "build:win": "pnpm build && tauri build",
     "build:mac": "pnpm build && tauri build --target universal-apple-darwin",
-    "vcam:install": "cmd.exe /c scripts\\install-obs-virtualcam.bat"
+    "vcam:install": "cmd.exe /c scripts\\install-obs-virtualcam.bat",
+    "server": "node --experimental-strip-types server/index.ts",
+    "server:dev": "node --experimental-strip-types --watch server/index.ts"
   },
   "dependencies": {
     "@decartai/sdk": "0.2.12",

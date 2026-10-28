@@ -53,7 +53,9 @@ export function resolveTokenEndpoint(
       const custom = window.localStorage.getItem(DECART_TOKEN_ENDPOINT_STORAGE);
       if (custom?.trim()) return custom.trim();
     }
-  } catch {}
+  } catch {
+    // Storage can throw in private browsing modes; fall back to defaults.
+  }
   return isDevelopment ? DEFAULT_DEV_ENDPOINT : null;
 }
 
@@ -90,12 +92,17 @@ export function createTokenEndpointProvider(
 
   const getDirectApiKey = (): string | null => {
     if (options.directKey) return options.directKey;
+    // Direct key escape hatch. Works in both dev and production builds so the
+    // desktop app can authenticate with Decart directly without calling an
+    // external /api/realtime-token endpoint.
     try {
       if (typeof window !== 'undefined') {
         const stored = window.localStorage.getItem(DECART_API_KEY_STORAGE)?.trim();
         if (stored) return stored;
       }
-    } catch {}
+    } catch {
+      // Storage can throw in private browsing modes; fall back to defaults.
+    }
     if (
       typeof import.meta.env.VITE_DECART_API_KEY === 'string' &&
       import.meta.env.VITE_DECART_API_KEY.trim()
