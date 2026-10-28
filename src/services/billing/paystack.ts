@@ -1,8 +1,3 @@
-import {
-  getPaystackPublicKey as getVaultPaystackKey,
-  isPaystackConfigured,
-} from '@/services/security/vault';
-
 export const PAYSTACK_PUBLIC_KEY_STORAGE = 'dallr_paystack_public_key';
 
 export function getPaystackPublicKey(): string {
@@ -12,9 +7,9 @@ export function getPaystackPublicKey(): string {
       if (stored && stored.trim()) return stored.trim();
     }
   } catch {
-    // Storage can throw in private browsing modes; fall back to the vault key.
+    // Storage can throw in private browsing modes; fall back to empty string.
   }
-  return getVaultPaystackKey();
+  return '';
 }
 
 export function setPaystackPublicKey(key: string): void {
@@ -96,25 +91,10 @@ export async function openPaystackCheckout(options: PaystackCheckoutOptions): Pr
   const reference = `dallr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
   if (!isPaystackConfigured()) {
-    // Development fallback: no real Paystack key is configured, so top-ups are simulated.
-    try {
-      await loadPaystackScript();
-    } catch {
-      // The gateway script may be blocked by an ad-blocker; the fallback checkout still works locally.
-    }
-
-    const confirmed = window.confirm(
-      `[Paystack fallback]\n\nPay ₦${options.amountNgn.toLocaleString()} ($${options.amountUsd}) for ${options.credits.toLocaleString()} Dallr Cam credits?\n\nClick OK to proceed with the fallback approval.`,
-    );
-    if (confirmed) {
-      options.onSuccess(reference);
-    } else {
-      options.onCancel?.();
-    }
-    return;
+    throw new Error('Paystack is not configured. Set VITE_PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY.');
   }
 
-  // Real Paystack checkout for production builds and configured sandbox keys.
+  // Real Paystack checkout
   try {
     await loadPaystackScript();
 

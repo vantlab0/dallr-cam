@@ -77,26 +77,27 @@ function authHeaders(token: string): Record<string, string> {
 
 export async function fetchWallet(): Promise<WalletBalance | null> {
   if (!isSupabaseConfigured()) return null;
-  const token = await getAccessToken();
-  if (!token) return null;
+  try {
+    const client = getSupabaseClient();
+    const { data: { session } } = await client.auth.getSession();
+    if (!session?.user) return null;
 
-  const { ok, json } = await walletRequest('balance', {
-    headers: authHeaders(token),
-  });
-  if (!ok) return null;
+    const { data, error } = await client
+      .from('wallets')
+      .select('balance_credits, lifetime_topup_usd')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
 
-  const body =
-    json && typeof json === 'object'
-      ? (json as Record<string, unknown>)
-      : null;
-  if (!body || typeof body.balanceCredits !== 'number') return null;
-  return {
-    balanceCredits: body.balanceCredits,
-    lifetimeTopUpUsd:
-      typeof body.lifetimeTopUpUsd === 'number'
-        ? body.lifetimeTopUpUsd
-        : 0,
-  };
+    if (error) return null;
+    if (!data) return null;
+
+    return {
+      balanceCredits: Number(data.balance_credits),
+      lifetimeTopUpUsd: Number(data.lifetime_topup_usd),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function topUpWallet(

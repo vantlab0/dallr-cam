@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createId } from '@/lib/id';
-import { createDefaultUser } from '@/lib/defaults';
 import {
   getSupabaseClient,
   getInitialSupabaseUser,
@@ -40,17 +39,6 @@ function titleCase(value: string): string {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
-}
-
-function userFromEmail(email: string): User {
-  const localPart = email.split('@')[0] ?? 'User';
-  return {
-    ...createDefaultUser(),
-    id: createId('usr'),
-    name: titleCase(localPart) || 'User',
-    email,
-    plan: 'Standard',
-  };
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -98,17 +86,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const seedWalletFromSupabase = useCallback(async () => {
     if (!isSupabaseConfigured() || !accessToken) return;
-    try {
-      const balance = await fetchWallet();
-      if (balance) {
-        setWallet((current) => ({
-          ...current,
-          balanceCredits: balance.balanceCredits,
-          lifetimeTopUpUsd: balance.lifetimeTopUpUsd,
-        }));
-      }
-    } catch {
-      // Supabase unreachable; keep the local wallet state.
+    const balance = await fetchWallet();
+    if (balance) {
+      setWallet((current) => ({
+        ...current,
+        balanceCredits: balance.balanceCredits,
+        lifetimeTopUpUsd: balance.lifetimeTopUpUsd,
+      }));
     }
   }, [accessToken]);
 
@@ -157,15 +141,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await captureAccessToken();
         await seedWalletFromSupabase();
       } catch (err: unknown) {
-        // Offline/dev fallback only: production builds must authenticate for real.
-        const message = err instanceof Error ? err.message : String(err);
-        if (
-          !isProductionRuntime() &&
-          (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network'))
-        ) {
-          setUser(userFromEmail(email));
-          return;
-        }
         throw err;
       }
     },
@@ -180,20 +155,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await captureAccessToken();
         await seedWalletFromSupabase();
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        if (
-          !isProductionRuntime() &&
-          (message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network'))
-        ) {
-          setUser({
-            ...createDefaultUser(),
-            id: createId('usr'),
-            name: name.trim() || 'User',
-            email: email.trim(),
-            plan: 'Standard',
-          });
-          return;
-        }
         throw err;
       }
     },
