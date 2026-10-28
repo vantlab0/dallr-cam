@@ -1,3 +1,5 @@
+import { isPaystackConfigured } from '@/services/security/vault';
+
 export const PAYSTACK_PUBLIC_KEY_STORAGE = 'dallr_paystack_public_key';
 
 export function getPaystackPublicKey(): string {

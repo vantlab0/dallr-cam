@@ -32,15 +32,6 @@ import { useToast } from './useToast';
 import { isProductionRuntime } from '@/lib/environment';
 import { isSupabaseConfigured } from '@/services/security/vault';
 
-function titleCase(value: string): string {
-  return value
-    .replace(/[._-]+/g, ' ')
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const [initial] = useState<PersistedState>(() => loadPersistedState() ?? createDefaultState());
   const [booting, setBooting] = useState(true);
