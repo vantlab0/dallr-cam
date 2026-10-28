@@ -25,6 +25,7 @@ jobs:
             args: ''
 
     runs-on: ${{ matrix.os }}
+    environment: DECART_API_KEY
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -58,10 +59,9 @@ jobs:
           # authenticates with Decart directly — no external token endpoint needed).
           VITE_DECART_API_KEY: ${{ secrets.DECART_API_KEY }}
           # Supabase auth (publishable/anon keys are public; the service role key stays server-side).
-          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_JWKS_URL: ${{ vars.SUPABASE_JWKS_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           # Paystack (public key is safe for the client; the secret key stays server-side).
           VITE_PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}
           PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
