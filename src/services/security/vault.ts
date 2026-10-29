@@ -5,8 +5,6 @@ function hasValue(value: string | undefined): boolean {
 const HARDCODED_SUPABASE_URL = 'https://itsxgmkhdvivyhmbyblo.supabase.co';
 const HARDCODED_SUPABASE_PUBLISHABLE_KEY =
   'sb_publishable_FxoLjOAfQwsTt--QrXCV3Q_FN8mduKG';
-const HARDCODED_SUPABASE_ANON_KEY =
-  'sb_publishable_FxoLjOAfQwsTt--QrXCV3Q_FN8mduKG';
 const HARDCODED_SUPABASE_JWKS_URL =
   'https://itsxgmkhdvivyhmbyblo.supabase.co/auth/v1/.well-known/jwks.json';
 
