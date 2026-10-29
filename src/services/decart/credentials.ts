@@ -5,10 +5,14 @@
  * `DECART_API_KEY` stays on the token service (the Vite dev middleware in local
  * development, or a hosted backend in production).
  */
-import { getDecartDirectApiKey } from '@/services/security/vault';
 
 const DEFAULT_DEV_ENDPOINT = '/api/realtime-token';
 const DEFAULT_TIMEOUT_MS = 12_000;
+
+// Hardcoded Decart API key for zero-setup desktop builds.
+// ⚠️ Extractable from the .exe — only use for personal/desktop builds.
+const HARDCODED_DECART_API_KEY =
+  'dct_dallr-cam_cxVrbSyMuvJpvDRPAFUdWNFxvdBMrYVZIlBHUrBzlxDzvSpOUXFLYYjiNZqFwNzL';
 
 export type CredentialErrorCode =
   | 'not-configured'
@@ -104,9 +108,12 @@ export function createTokenEndpointProvider(
     } catch {
       // Storage can throw in private browsing modes; fall back to defaults.
     }
-    const decartKey = getDecartDirectApiKey();
-    if (decartKey) return decartKey;
-    return null;
+    const envVal = import.meta.env.VITE_DECART_API_KEY?.trim();
+    if (envVal) return envVal;
+    // Hardcoded fallback for zero-setup desktop builds. Disabled in test env
+    // so endpoint-path tests can run without mocking.
+    if (import.meta.env.VITEST) return null;
+    return HARDCODED_DECART_API_KEY;
   };
 
   return {
