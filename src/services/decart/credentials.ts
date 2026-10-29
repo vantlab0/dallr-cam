@@ -5,6 +5,7 @@
  * `DECART_API_KEY` stays on the token service (the Vite dev middleware in local
  * development, or a hosted backend in production).
  */
+import { getDecartDirectApiKey } from '@/services/security/vault';
 
 const DEFAULT_DEV_ENDPOINT = '/api/realtime-token';
 const DEFAULT_TIMEOUT_MS = 12_000;
@@ -103,12 +104,8 @@ export function createTokenEndpointProvider(
     } catch {
       // Storage can throw in private browsing modes; fall back to defaults.
     }
-    if (
-      typeof import.meta.env.VITE_DECART_API_KEY === 'string' &&
-      import.meta.env.VITE_DECART_API_KEY.trim()
-    ) {
-      return import.meta.env.VITE_DECART_API_KEY.trim();
-    }
+    const decartKey = getDecartDirectApiKey();
+    if (decartKey) return decartKey;
     return null;
   };
 

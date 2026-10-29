@@ -1,4 +1,7 @@
-import { isPaystackConfigured } from '@/services/security/vault';
+import {
+  getPaystackPublicKey as getVaultPaystackPublicKey,
+  isPaystackConfigured,
+} from '@/services/security/vault';
 
 export const PAYSTACK_PUBLIC_KEY_STORAGE = 'dallr_paystack_public_key';
 
@@ -9,9 +12,9 @@ export function getPaystackPublicKey(): string {
       if (stored && stored.trim()) return stored.trim();
     }
   } catch {
-    // Storage can throw in private browsing modes; fall back to empty string.
+    // Storage can throw in private browsing modes; fall back to the vault key.
   }
-  return '';
+  return getVaultPaystackPublicKey();
 }
 
 export function setPaystackPublicKey(key: string): void {
