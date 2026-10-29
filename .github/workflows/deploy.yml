@@ -41,6 +41,16 @@ jobs:
 
       - name: Build production bundle
         run: pnpm build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_JWKS_URL: ${{ secrets.VITE_SUPABASE_JWKS_URL }}
+          VITE_DECART_API_KEY: ${{ secrets.DECART_API_KEY }}
+          VITE_PAYSTACK_PUBLIC_KEY: ${{ secrets.PAYSTACK_PUBLIC_KEY }}
+          PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DECART_API_KEY: ${{ secrets.DECART_API_KEY }}
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
