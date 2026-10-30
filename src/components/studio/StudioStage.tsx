@@ -8,6 +8,7 @@ import {
   Grid2x2,
   ImagePlus,
   LoaderCircle,
+  Monitor,
   Play,
   RefreshCw,
   Sparkles,
@@ -29,6 +30,7 @@ import {
   createBroadcastStream,
   installObsVirtualCam,
   isPictureInPictureSupported,
+  openCleanBroadcastWindow,
   openVirtualCamProjector,
   toggleVirtualCamPip,
   type VirtualCamInstallProgress,
@@ -312,6 +314,12 @@ export function StudioStage({
     // This produces a genuine MediaStream (30 fps) that acts as the virtual camera source.
     const broadcastStream = videoEl ? createBroadcastStream(videoEl) : null;
 
+    // Expose the stream on window so clean broadcast windows can pick it up.
+    if (broadcastStream) {
+      (window as unknown as { __dallrCleanBroadcastStream?: MediaStream }).__dallrCleanBroadcastStream =
+        broadcastStream;
+    }
+
     if (videoEl && isPictureInPictureSupported()) {
       const active = await toggleVirtualCamPip(videoEl);
       setVirtualCamActive(active || true);
@@ -325,6 +333,17 @@ export function StudioStage({
       setVirtualCamActive(true);
     }
     setVirtualCamModalOpen(true);
+  };
+
+  const openCleanBroadcast = () => {
+    const broadcastStream =
+      (window as unknown as { __dallrCleanBroadcastStream?: MediaStream })
+        ?.__dallrCleanBroadcastStream ?? remoteStream ?? null;
+    if (broadcastStream) {
+      openCleanBroadcastWindow(broadcastStream);
+      setVirtualCamActive(true);
+      setVirtualCamModalOpen(true);
+    }
   };
 
   const handleToggleVirtualCam = async () => {
@@ -793,6 +812,30 @@ export function StudioStage({
           <Video className="size-3.5" />
           <span className="hidden sm:inline">
             {virtualCamActive ? 'Virtual Cam ON' : 'Virtual Cam'}
+          </span>
+        </button>
+
+        {/* Clean Broadcast Window — borderless video-only window for screensharing */}
+        <button
+          type="button"
+          onClick={openCleanBroadcast}
+          className={cn(
+            'inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[11px] font-medium transition backdrop-blur-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+            virtualCamActive
+              ? 'border-blue-500/40 bg-blue-500/20 text-blue-300 shadow-[0_0_18px_rgba(59,130,246,0.3)]'
+              : 'border-white/10 bg-white/[0.05] text-white/70 hover:border-white/25 hover:bg-white/[0.09] hover:text-white',
+          )}
+          title="Open clean borderless window for screensharing from WhatsApp, Zoom, Meet"
+        >
+          <span
+            className={cn(
+              'size-2 rounded-full transition-all',
+              virtualCamActive ? 'bg-blue-400 animate-pulse' : 'bg-white/30',
+            )}
+          />
+          <Monitor className="size-3.5" />
+          <span className="hidden sm:inline">
+            {virtualCamActive ? 'Broadcast Window ON' : 'Clean Broadcast Window'}
           </span>
         </button>
       </div>

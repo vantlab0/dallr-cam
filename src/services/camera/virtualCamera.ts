@@ -101,38 +101,127 @@ export function openVirtualCamProjector(stream: MediaStream | null): Window | nu
   const left = Math.max(0, (window.screen.width - width) / 2);
   const top = Math.max(0, (window.screen.height - height) / 2);
 
+  // Use a unique window name so browsers don't reuse an existing tab/window.
+  const winName = `dallr_broadcast_${Date.now()}`;
+
   const win = window.open(
     '',
-    'dallr_virtual_cam_projector',
-    `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`,
+    winName,
+    `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,titlebar=no,fullscreen=no`,
   );
 
   if (!win) return null;
 
   projectorWindow = win;
 
-  win.document.title = 'Dallr Virtual Camera — Decart Output';
-  win.document.body.style.margin = '0';
-  win.document.body.style.backgroundColor = '#000';
-  win.document.body.style.overflow = 'hidden';
-  win.document.body.style.display = 'flex';
-  win.document.body.style.alignItems = 'center';
-  win.document.body.style.justifyContent = 'center';
-  win.document.body.style.height = '100vh';
+  // Inject a completely bare HTML document with ONLY the video frame —
+  // no browser chrome, no borders, no margins, nothing but the stream.
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Dallr Virtual Camera — Clean Broadcast</title>
+      <style>
+        * { margin: 0; padding: 0; border: 0; outline: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+        body { display: flex; align-items: center; justify-content: center; }
+        video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+      </style>
+    </head>
+    <body>
+      <video id="broadcastVideo" autoplay playsinline muted></video>
+      <script>
+        const video = document.getElementById('broadcastVideo');
+        window.opener && window.opener.__dallrBroadcastStream && video.setSrcObject(window.opener.__dallrBroadcastStream);
+      </script>
+    </body>
+    </html>
+  `);
+  win.document.close();
 
-  const video = win.document.createElement('video');
-  video.autoplay = true;
-  video.playsInline = true;
-  video.muted = true;
-  video.style.width = '100%';
-  video.style.height = '100%';
-  video.style.objectFit = 'contain';
-  video.srcObject = stream;
-
-  win.document.body.appendChild(video);
+  const video = win.document.getElementById('broadcastVideo') as HTMLVideoElement;
+  if (video) {
+    video.srcObject = stream;
+    video.play().catch(() => {});
+  }
 
   win.addEventListener('beforeunload', () => {
     projectorWindow = null;
+  });
+
+  return win;
+}
+
+/**
+ * Opens a completely clean, borderless broadcast window with ONLY the video frame —
+ * no borders, no title bar, no browser UI. Designed specifically for screensharing
+ * from WhatsApp, Zoom, Google Meet, Teams, Discord, etc.
+ *
+ * The window contains nothing but the live transformed Decart output stream so that
+ * when a user selects it in a screenshare dialog, there are no surrounding elements.
+ */
+export function openCleanBroadcastWindow(stream: MediaStream | null): Window | null {
+  if (!stream || typeof window === 'undefined') return null;
+
+  if (projectorWindow && !projectorWindow.closed) {
+    projectorWindow.focus();
+    return projectorWindow;
+  }
+
+  const width = 1280;
+  const height = 720;
+  const left = Math.max(0, (window.screen.width - width) / 2);
+  const top = Math.max(0, (window.screen.height - height) / 2);
+
+  const winName = `dallr_clean_broadcast_${Date.now()}`;
+
+  const win = window.open(
+    '',
+    winName,
+    `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,titlebar=no,fullscreen=no`,
+  );
+
+  if (!win) return null;
+
+  projectorWindow = win;
+
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Dallr Clean Broadcast</title>
+      <style>
+        * { margin: 0; padding: 0; border: 0; outline: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+        body { display: flex; align-items: center; justify-content: center; }
+        video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+      </style>
+    </head>
+    <body>
+      <video id="cleanBroadcastVideo" autoplay playsinline muted></video>
+      <script>
+        (function() {
+          const video = document.getElementById('cleanBroadcastVideo');
+          const stream = window.opener.__dallrCleanBroadcastStream;
+          if (stream) {
+            try { video.srcObject = stream; video.play().catch(() => {}); } catch(e) {}
+          }
+        })();
+      </script>
+    </body>
+    </html>
+  `);
+  win.document.close();
+
+  // Attach the stream to the window object so the injected script can pick it up.
+  (win as unknown as { __dallrCleanBroadcastStream?: MediaStream }).__dallrCleanBroadcastStream = stream;
+
+  win.addEventListener('beforeunload', () => {
+    projectorWindow = null;
+    (win as unknown as { __dallrCleanBroadcastStream?: MediaStream }).__dallrCleanBroadcastStream = undefined;
   });
 
   return win;

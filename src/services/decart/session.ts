@@ -311,8 +311,9 @@ export function mapCameraError(error: unknown): LucySessionError {
           code: 'camera-busy',
           title: 'Camera is busy',
           message:
-            'Another application may be using the camera. Close it, then retry the session.',
-          fatal: true,
+            'Another application may be using the camera. You can still broadcast a clean window for screensharing, or close the other app and retry.',
+          hint: 'Use "Clean Broadcast Window" to screenshare from WhatsApp/Zoom without camera access.',
+          fatal: false,
         };
       default:
         return {
