@@ -24,7 +24,6 @@ import { cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/Overlay';
 import { Button } from '@/components/ui/Button';
 import {
-  createBroadcastStream,
   openCleanBroadcastWindow,
 } from '@/services/camera/virtualCamera';
 
@@ -281,18 +280,14 @@ export function StudioStage({
   }, [cameraOpen]);
 
   const openBroadcastWindow = async () => {
-    const videoEl = document.getElementById('video-output') as HTMLVideoElement | null;
+    // remoteStream IS the Dallr output — use it directly (no canvas needed).
+    const stream = remoteStream ?? localStream ?? null;
 
-    // Create a real broadcast stream from the video element via canvas capture.
-    const broadcastStream = videoEl ? createBroadcastStream(videoEl) : null;
-
-    // Expose the stream on window so clean broadcast windows can pick it up.
-    if (broadcastStream) {
-      (window as unknown as { __dallrCleanBroadcastStream?: MediaStream }).__dallrCleanBroadcastStream =
-        broadcastStream;
+    if (!stream) {
+      return;
     }
 
-    openCleanBroadcastWindow(broadcastStream ?? remoteStream ?? null);
+    openCleanBroadcastWindow(stream);
     setBroadcastWindowOpen(true);
   };
 

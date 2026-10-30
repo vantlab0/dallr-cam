@@ -114,6 +114,9 @@ export function openVirtualCamProjector(stream: MediaStream | null): Window | nu
 
   projectorWindow = win;
 
+  // Attach stream BEFORE writing document so inline script can access it.
+  (win as unknown as { __dallrBroadcastStream?: MediaStream }).__dallrBroadcastStream = stream;
+
   // Inject a completely bare HTML document with ONLY the video frame —
   // no browser chrome, no borders, no margins, nothing but the stream.
   win.document.write(`
@@ -133,22 +136,22 @@ export function openVirtualCamProjector(stream: MediaStream | null): Window | nu
     <body>
       <video id="broadcastVideo" autoplay playsinline muted></video>
       <script>
-        const video = document.getElementById('broadcastVideo');
-        window.opener && window.opener.__dallrBroadcastStream && video.setSrcObject(window.opener.__dallrBroadcastStream);
+        (function() {
+          const video = document.getElementById('broadcastVideo');
+          const stream = window.opener.__dallrBroadcastStream;
+          if (stream) {
+            try { video.srcObject = stream; video.play().catch(() => {}); } catch(e) {}
+          }
+        })();
       </script>
     </body>
     </html>
   `);
   win.document.close();
 
-  const video = win.document.getElementById('broadcastVideo') as HTMLVideoElement;
-  if (video) {
-    video.srcObject = stream;
-    video.play().catch(() => {});
-  }
-
   win.addEventListener('beforeunload', () => {
     projectorWindow = null;
+    (win as unknown as { __dallrBroadcastStream?: MediaStream }).__dallrBroadcastStream = undefined;
   });
 
   return win;
@@ -187,6 +190,9 @@ export function openCleanBroadcastWindow(stream: MediaStream | null): Window | n
 
   projectorWindow = win;
 
+  // Attach stream BEFORE writing document so inline script can access it.
+  (win as unknown as { __dallrCleanBroadcastStream?: MediaStream }).__dallrCleanBroadcastStream = stream;
+
   win.document.write(`
     <!DOCTYPE html>
     <html>
@@ -215,9 +221,6 @@ export function openCleanBroadcastWindow(stream: MediaStream | null): Window | n
     </html>
   `);
   win.document.close();
-
-  // Attach the stream to the window object so the injected script can pick it up.
-  (win as unknown as { __dallrCleanBroadcastStream?: MediaStream }).__dallrCleanBroadcastStream = stream;
 
   win.addEventListener('beforeunload', () => {
     projectorWindow = null;

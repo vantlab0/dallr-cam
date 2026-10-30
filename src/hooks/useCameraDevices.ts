@@ -29,7 +29,14 @@ function isVirtualCamera(device: MediaDeviceInfo): boolean {
     label.includes('virtual cam') ||
     label.includes('obs-camera') ||
     label.includes('obsvirtual') ||
-    label.includes('dallr virtual')
+    label.includes('dallr virtual') ||
+    label.includes('dallr cam') ||
+    label.includes('screen capture') ||
+    label.includes('screen-capture') ||
+    label.includes('desktop capture') ||
+    label.includes('epoc') ||
+    label.includes('manycam') ||
+    label.includes('xsplit')
   );
 }
 
@@ -38,10 +45,10 @@ async function listDevices(): Promise<CameraDevice[]> {
   const devices = await navigator.mediaDevices.enumerateDevices();
   return devices
     .filter((device) => device.kind === 'videoinput')
+    .filter((device) => !isVirtualCamera(device)) // Remove virtual cameras entirely
     .map((device, index) => ({
       deviceId: device.deviceId,
       label: device.label || `Camera ${index + 1}`,
-      isVirtual: isVirtualCamera(device),
     }));
 }
 
