@@ -7,6 +7,55 @@
 
 let projectorWindow: Window | null = null;
 
+/**
+ * Creates a real broadcast MediaStream from a video element by drawing its
+ * frames to an offscreen canvas and capturing that canvas as a stream.
+ *
+ * This produces a genuine MediaStream (via canvas.captureStream) that can be
+ * consumed as a virtual camera source by the app's broadcast pipeline, rather
+ * than merely showing a Picture-in-Picture window.
+ */
+export function createBroadcastStream(
+  videoElement: HTMLVideoElement | null,
+): MediaStream | null {
+  if (!videoElement || typeof window === 'undefined') return null;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 1280;
+  canvas.height = 720;
+  canvas.style.display = 'none';
+  document.body.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    document.body.removeChild(canvas);
+    return null;
+  }
+
+  let running = true;
+
+  const drawFrame = () => {
+    if (!running) return;
+    if (videoElement.readyState >= 2) {
+      ctx.drawImage(videoElement, 0, 0, 1280, 720);
+    }
+    requestAnimationFrame(drawFrame);
+  };
+  drawFrame();
+
+  const stream = canvas.captureStream(30); // 30 fps
+
+  // Clean up when the video element is removed or stops.
+  const cleanup = () => {
+    running = false;
+    document.body.removeChild(canvas);
+  };
+  videoElement.addEventListener('remove', cleanup);
+  videoElement.addEventListener('emptied', cleanup);
+
+  return stream;
+}
+
 export function isPictureInPictureSupported(): boolean {
   return typeof document !== 'undefined' && 'pictureInPictureEnabled' in document && document.pictureInPictureEnabled;
 }

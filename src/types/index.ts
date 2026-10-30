@@ -98,6 +98,7 @@ export type ConnectionState = 'online' | 'offline' | 'reconnecting';
 export interface CameraDevice {
   deviceId: string;
   label: string;
+  isVirtual?: boolean;
 }
 
 /** Lifecycle of a real Decart Lucy session. */

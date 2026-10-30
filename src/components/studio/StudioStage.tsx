@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/Button';
 import {
   checkObsVirtualCamInstalled,
   closeVirtualCamProjector,
+  createBroadcastStream,
   installObsVirtualCam,
   isPictureInPictureSupported,
   openVirtualCamProjector,
@@ -306,9 +307,17 @@ export function StudioStage({
 
   const activateVirtualCamStream = async () => {
     const videoEl = document.getElementById('video-output') as HTMLVideoElement | null;
+
+    // Create a real broadcast stream from the video element via canvas capture.
+    // This produces a genuine MediaStream (30 fps) that acts as the virtual camera source.
+    const broadcastStream = videoEl ? createBroadcastStream(videoEl) : null;
+
     if (videoEl && isPictureInPictureSupported()) {
       const active = await toggleVirtualCamPip(videoEl);
       setVirtualCamActive(active || true);
+    } else if (broadcastStream) {
+      const win = openVirtualCamProjector(broadcastStream);
+      setVirtualCamActive(Boolean(win));
     } else if (remoteStream) {
       const win = openVirtualCamProjector(remoteStream);
       setVirtualCamActive(Boolean(win));
