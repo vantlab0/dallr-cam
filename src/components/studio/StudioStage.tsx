@@ -13,8 +13,7 @@ import {
   RefreshCw,
   Sparkles,
   Square,
-  Tv,
-  Video,
+  
   WalletCards,
   WifiOff,
   X,
@@ -25,15 +24,8 @@ import { cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/Overlay';
 import { Button } from '@/components/ui/Button';
 import {
-  checkObsVirtualCamInstalled,
-  closeVirtualCamProjector,
   createBroadcastStream,
-  installObsVirtualCam,
-  isPictureInPictureSupported,
   openCleanBroadcastWindow,
-  openVirtualCamProjector,
-  toggleVirtualCamPip,
-  type VirtualCamInstallProgress,
 } from '@/services/camera/virtualCamera';
 
 function StreamVideo({
@@ -43,7 +35,6 @@ function StreamVideo({
   id,
   className,
   onFramesReady,
-  onPipChange,
 }: {
   stream: MediaStream;
   mirrored?: boolean;
@@ -51,13 +42,10 @@ function StreamVideo({
   id?: string;
   className?: string;
   onFramesReady?: () => void;
-  onPipChange?: (active: boolean) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const onFramesReadyRef = useRef(onFramesReady);
   onFramesReadyRef.current = onFramesReady;
-  const onPipChangeRef = useRef(onPipChange);
-  onPipChangeRef.current = onPipChange;
 
   useEffect(() => {
     const element = videoRef.current;
@@ -97,9 +85,6 @@ function StreamVideo({
       tryPlay();
     };
 
-    const handleEnterPip = () => onPipChangeRef.current?.(true);
-    const handleLeavePip = () => onPipChangeRef.current?.(false);
-
     tryPlay();
 
     element.addEventListener('loadedmetadata', handleFrame);
@@ -107,8 +92,6 @@ function StreamVideo({
     element.addEventListener('canplay', handleFrame);
     element.addEventListener('playing', handleFrame);
     element.addEventListener('timeupdate', handleFrame);
-    element.addEventListener('enterpictureinpicture', handleEnterPip);
-    element.addEventListener('leavepictureinpicture', handleLeavePip);
     stream.addEventListener('addtrack', tryPlay);
 
     const videoTracks = stream.getVideoTracks();
@@ -130,8 +113,6 @@ function StreamVideo({
       element.removeEventListener('canplay', handleFrame);
       element.removeEventListener('playing', handleFrame);
       element.removeEventListener('timeupdate', handleFrame);
-      element.removeEventListener('enterpictureinpicture', handleEnterPip);
-      element.removeEventListener('leavepictureinpicture', handleLeavePip);
       stream.removeEventListener('addtrack', tryPlay);
       videoTracks.forEach((track) => {
         track.removeEventListener('unmute', tryPlay);
@@ -263,15 +244,7 @@ export function StudioStage({
   onFirstFrame?: () => void;
 }) {
   const [cameraOpen, setCameraOpen] = useState(false);
-  const [virtualCamActive, setVirtualCamActive] = useState(false);
-  const [virtualCamModalOpen, setVirtualCamModalOpen] = useState(false);
-  const [vcamInstallModalOpen, setVcamInstallModalOpen] = useState(false);
-  const [vcamInstallState, setVcamInstallState] = useState<'idle' | 'installing' | 'completed' | 'error'>('idle');
-  const [vcamProgress, setVcamProgress] = useState<VirtualCamInstallProgress>({
-    percent: 0,
-    stage: 'Initializing',
-    detail: 'Checking system dependencies...',
-  });
+  const [broadcastWindowOpen, setBroadcastWindowOpen] = useState(false);
   const [remoteFramesReady, setRemoteFramesReady] = useState(false);
 
   const cameraRef = useRef<HTMLDivElement>(null);
@@ -285,7 +258,7 @@ export function StudioStage({
   useEffect(() => {
     if (!remoteStream) {
       setRemoteFramesReady(false);
-      setVirtualCamActive(false);
+      setBroadcastWindowOpen(false);
     }
   }, [remoteStream]);
 
@@ -307,11 +280,10 @@ export function StudioStage({
     };
   }, [cameraOpen]);
 
-  const activateVirtualCamStream = async () => {
+  const openBroadcastWindow = async () => {
     const videoEl = document.getElementById('video-output') as HTMLVideoElement | null;
 
     // Create a real broadcast stream from the video element via canvas capture.
-    // This produces a genuine MediaStream (30 fps) that acts as the virtual camera source.
     const broadcastStream = videoEl ? createBroadcastStream(videoEl) : null;
 
     // Expose the stream on window so clean broadcast windows can pick it up.
@@ -320,69 +292,8 @@ export function StudioStage({
         broadcastStream;
     }
 
-    if (videoEl && isPictureInPictureSupported()) {
-      const active = await toggleVirtualCamPip(videoEl);
-      setVirtualCamActive(active || true);
-    } else if (broadcastStream) {
-      const win = openVirtualCamProjector(broadcastStream);
-      setVirtualCamActive(Boolean(win));
-    } else if (remoteStream) {
-      const win = openVirtualCamProjector(remoteStream);
-      setVirtualCamActive(Boolean(win));
-    } else {
-      setVirtualCamActive(true);
-    }
-    setVirtualCamModalOpen(true);
-  };
-
-  const openCleanBroadcast = () => {
-    const broadcastStream =
-      (window as unknown as { __dallrCleanBroadcastStream?: MediaStream })
-        ?.__dallrCleanBroadcastStream ?? remoteStream ?? null;
-    if (broadcastStream) {
-      openCleanBroadcastWindow(broadcastStream);
-      setVirtualCamActive(true);
-      setVirtualCamModalOpen(true);
-    }
-  };
-
-  const handleToggleVirtualCam = async () => {
-    // If turning OFF:
-    if (virtualCamActive) {
-      if (typeof document !== 'undefined' && document.pictureInPictureElement) {
-        await document.exitPictureInPicture().catch(() => {});
-      }
-      closeVirtualCamProjector();
-      setVirtualCamActive(false);
-      return;
-    }
-
-    // If turning ON: check if OBS Virtual Cam is installed
-    const isInstalled = await checkObsVirtualCamInstalled();
-    if (!isInstalled) {
-      setVcamInstallModalOpen(true);
-      setVcamInstallState('installing');
-      setVcamProgress({
-        percent: 10,
-        stage: 'Checking system',
-        detail: 'Scanning Windows device registry for OBS Virtual Camera...',
-      });
-
-      const result = await installObsVirtualCam((progress) => {
-        setVcamProgress(progress);
-      });
-
-      if (result.success) {
-        setVcamInstallState('completed');
-        void activateVirtualCamStream();
-      } else {
-        setVcamInstallState('error');
-      }
-      return;
-    }
-
-    // Already installed: activate virtual camera stream directly!
-    void activateVirtualCamStream();
+    openCleanBroadcastWindow(broadcastStream ?? remoteStream ?? null);
+    setBroadcastWindowOpen(true);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -472,7 +383,6 @@ export function StudioStage({
                 setRemoteFramesReady(true);
                 onFirstFrame?.();
               }}
-              onPipChange={setVirtualCamActive}
               className={cn(
                 'size-full object-cover transition-opacity duration-300',
                 remoteFramesReady ? 'opacity-100' : 'opacity-0',
@@ -651,20 +561,6 @@ export function StudioStage({
             </button>
           ) : null}
 
-          {/* Virtual Camera Live Badge */}
-          {virtualCamActive ? (
-            <button
-              type="button"
-              onClick={() => setVirtualCamModalOpen(true)}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-3 text-[10.5px] font-medium text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)] backdrop-blur-xl"
-              title="Virtual camera active · click for setup instructions"
-            >
-              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <Video className="size-3" />
-              <span>Broadcast Live</span>
-            </button>
-          ) : null}
-
           {/* Credits Badge */}
           <Link
             to="/wallet"
@@ -791,37 +687,13 @@ export function StudioStage({
           ) : null}
         </div>
 
-        {/* 3. Virtual Camera Broadcast Toggle Button */}
+        {/* Broadcast Window — borderless video-only window for screensharing */}
         <button
           type="button"
-          onClick={handleToggleVirtualCam}
+          onClick={openBroadcastWindow}
           className={cn(
             'inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[11px] font-medium transition backdrop-blur-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-            virtualCamActive
-              ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300 shadow-[0_0_18px_rgba(16,185,129,0.3)]'
-              : 'border-white/10 bg-white/[0.05] text-white/70 hover:border-white/25 hover:bg-white/[0.09] hover:text-white',
-          )}
-          title="Broadcast Decart output to virtual camera for WhatsApp, Zoom, OBS"
-        >
-          <span
-            className={cn(
-              'size-2 rounded-full transition-all',
-              virtualCamActive ? 'bg-emerald-400 animate-pulse' : 'bg-white/30',
-            )}
-          />
-          <Video className="size-3.5" />
-          <span className="hidden sm:inline">
-            {virtualCamActive ? 'Virtual Cam ON' : 'Virtual Cam'}
-          </span>
-        </button>
-
-        {/* Clean Broadcast Window — borderless video-only window for screensharing */}
-        <button
-          type="button"
-          onClick={openCleanBroadcast}
-          className={cn(
-            'inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 text-[11px] font-medium transition backdrop-blur-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-            virtualCamActive
+            broadcastWindowOpen
               ? 'border-blue-500/40 bg-blue-500/20 text-blue-300 shadow-[0_0_18px_rgba(59,130,246,0.3)]'
               : 'border-white/10 bg-white/[0.05] text-white/70 hover:border-white/25 hover:bg-white/[0.09] hover:text-white',
           )}
@@ -830,12 +702,12 @@ export function StudioStage({
           <span
             className={cn(
               'size-2 rounded-full transition-all',
-              virtualCamActive ? 'bg-blue-400 animate-pulse' : 'bg-white/30',
+              broadcastWindowOpen ? 'bg-blue-400 animate-pulse' : 'bg-white/30',
             )}
           />
           <Monitor className="size-3.5" />
           <span className="hidden sm:inline">
-            {virtualCamActive ? 'Broadcast Window ON' : 'Clean Broadcast Window'}
+            {broadcastWindowOpen ? 'Broadcast Window ON' : 'Clean Broadcast Window'}
           </span>
         </button>
       </div>
@@ -847,192 +719,33 @@ export function StudioStage({
         </div>
       ) : null}
 
-      {/* ── Virtual Camera Setup & External Apps Guide Modal ── */}
+      {/* ── Broadcast Window Instructions Modal ── */}
       <Modal
-        open={virtualCamModalOpen}
-        onClose={() => setVirtualCamModalOpen(false)}
-        title="Broadcast Dallr Cam Output to External Apps"
-        description="Stream the transformed Dallr Cam video to WhatsApp, Zoom, OBS Studio, and Meet."
+        open={broadcastWindowOpen}
+        onClose={() => setBroadcastWindowOpen(false)}
+        title="Broadcast Dallr Cam to External Apps"
+        description="Share the clean broadcast window from WhatsApp, Zoom, Teams, or Meet."
         size="md"
         footer={
           <div className="flex w-full items-center justify-between">
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={Tv}
-              onClick={() => {
-                if (remoteStream) openVirtualCamProjector(remoteStream);
-              }}
-            >
-              Open Clean Projector Window
-            </Button>
-            <Button variant="secondary" onClick={() => setVirtualCamModalOpen(false)}>
+            <Button variant="secondary" onClick={() => setBroadcastWindowOpen(false)}>
               Close
             </Button>
           </div>
         }
       >
         <div className="space-y-4">
-          {/* Active status banner */}
-          <div className="flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3">
-            <div className="flex items-center gap-2.5">
-              <span className="grid size-7 place-items-center rounded-lg bg-emerald-500/20 text-emerald-400">
-                <Video className="size-4" />
-              </span>
-              <div>
-                <p className="text-[12px] font-semibold text-emerald-300">
-                  {remoteStream ? 'Dallr Cam 720p 30fps Output Ready' : 'Dallr Cam Session Standby'}
-                </p>
-                <p className="text-[10px] text-emerald-400/75">
-                  {remoteStream
-                    ? 'Transformed video is actively available for capture.'
-                    : 'Click "Start session" to activate real-time AI video generation.'}
-                </p>
-              </div>
-            </div>
-            <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[9.5px] font-medium text-emerald-300">
-              {virtualCamActive ? 'Active' : 'Standby'}
-            </span>
-          </div>
-
-          {/* Quick instructions for WhatsApp, Zoom, OBS */}
-          <div className="space-y-2.5 text-[11.5px]">
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
-              <p className="font-semibold text-white/90">💬 WhatsApp (Desktop or Web)</p>
-              <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-white/55">
-                <li>Start a video call in WhatsApp.</li>
-                <li>
-                  Click the <strong>Share screen / window</strong> button.
-                </li>
-                <li>
-                  Select <strong>Dallr Virtual Camera</strong> (or the Picture-in-Picture window).
-                </li>
-                <li>WhatsApp broadcasts your live transformed Decart video stream!</li>
-              </ol>
-            </div>
-
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
-              <p className="font-semibold text-white/90">📹 Zoom, Google Meet & Teams</p>
-              <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-white/55">
-                <li>
-                  In your meeting, click <strong>Share Screen → Window</strong> → choose{' '}
-                  <strong>Dallr Virtual Camera</strong>.
-                </li>
-                <li>
-                  <em>Or</em> route via OBS Virtual Camera (below) to have Dallr appear directly as a
-                  physical webcam selection!
-                </li>
-              </ol>
-            </div>
-
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
-              <p className="font-semibold text-white/90">🎬 OBS Virtual Camera (Native Webcam in ANY App)</p>
-              <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-white/55">
-                <li>Open OBS Studio and add a <strong>Window Capture</strong> source.</li>
-                <li>Select <strong>Dallr Studio</strong> or the Clean Projector window.</li>
-                <li>
-                  Click <strong>Start Virtual Camera</strong> in OBS.
-                </li>
-                <li>Now WhatsApp, Zoom, Meet, and Discord see Decart as your real camera device!</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      {/* ── Virtual Camera Installation & Progress Modal ── */}
-      <Modal
-        open={vcamInstallModalOpen}
-        onClose={() => {
-          if (vcamInstallState !== 'installing') {
-            setVcamInstallModalOpen(false);
-          }
-        }}
-        title="OBS Virtual Camera Setup"
-        description="Installing Windows DirectShow driver to broadcast Decart output directly to external apps."
-        size="md"
-        footer={
-          vcamInstallState === 'installing' ? (
-            <div className="flex w-full items-center justify-between">
-              <span className="flex items-center gap-2 text-xs text-white/50">
-                <LoaderCircle className="size-3.5 animate-spin text-accent" />
-                Registering DirectShow filter...
-              </span>
-              <span className="text-xs font-semibold tabular-nums text-accent">
-                {vcamProgress.percent}%
-              </span>
-            </div>
-          ) : vcamInstallState === 'completed' ? (
-            <div className="flex w-full items-center justify-between">
-              <span className="text-xs font-medium text-emerald-400">
-                ✓ Virtual camera ready & active
-              </span>
-              <Button
-                variant="primary"
-                onClick={() => setVcamInstallModalOpen(false)}
-              >
-                Continue to Studio
-              </Button>
-            </div>
-          ) : (
-            <div className="flex w-full items-center justify-between">
-              <Button variant="secondary" onClick={() => setVcamInstallModalOpen(false)}>
-                Close
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setVcamInstallState('installing');
-                  void installObsVirtualCam(setVcamProgress).then((res) => {
-                    if (res.success) {
-                      setVcamInstallState('completed');
-                      void activateVirtualCamStream();
-                    } else {
-                      setVcamInstallState('error');
-                    }
-                  });
-                }}
-              >
-                Retry Installation
-              </Button>
-            </div>
-          )
-        }
-      >
-        <div className="space-y-4 py-2">
-          {/* Progress Bar & Stage Status */}
-          <div>
-            <div className="mb-2 flex items-center justify-between text-xs">
-              <span className="font-medium text-white/80">{vcamProgress.stage}</span>
-              <span className="font-semibold tabular-nums text-accent">{vcamProgress.percent}%</span>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full bg-gradient-to-r from-accent to-emerald-400 transition-all duration-300 ease-out"
-                style={{ width: `${vcamProgress.percent}%` }}
-              />
-            </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-white/50">{vcamProgress.detail}</p>
-          </div>
-
-          {/* Configuration and Driver Details Box */}
-          <div className="space-y-2 rounded-xl border border-white/[0.08] bg-black/30 p-3.5 text-[11.5px]">
-            <div className="flex items-center justify-between text-white/60">
-              <span>DirectShow Driver</span>
-              <span className="font-mono text-[10.5px] text-white/85">obs-virtualcam-module64.dll</span>
-            </div>
-            <div className="flex items-center justify-between text-white/60">
-              <span>Driver CLSID</span>
-              <span className="font-mono text-[10px] text-accent/80">{'{A3FCE0F5-3493-419F-958A-ABA1250EC20B}'}</span>
-            </div>
-            <div className="flex items-center justify-between text-white/60">
-              <span>Supported Applications</span>
-              <span className="text-white/85">WhatsApp, Zoom, Teams, Discord, Meet</span>
-            </div>
-            <div className="flex items-center justify-between text-white/60">
-              <span>Broadcast Resolution</span>
-              <span className="font-medium text-emerald-400">Dallr Cam 2.5 · 720p 30fps</span>
-            </div>
+          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+            <p className="font-semibold text-white/90">How to screenshare</p>
+            <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-white/55">
+              <li>
+                Click <strong>Clean Broadcast Window</strong> to open a borderless video-only window.
+              </li>
+              <li>In WhatsApp / Zoom / Teams / Meet, start a video call.</li>
+              <li>Click <strong>Share Screen → Window</strong>.</li>
+              <li>Select the <strong>Dallr Clean Broadcast</strong> window.</li>
+              <li>Your transformed Dallr Cam video is now live on the call.</li>
+            </ol>
           </div>
         </div>
       </Modal>
